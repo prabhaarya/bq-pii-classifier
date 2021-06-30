@@ -1,5 +1,0 @@
-PROJECT_ID: facilities-910444929556
-REGION_ID: europe-west2
-QUEUE_ID: tagger-queue
-SA_EMAIL: sa-sec-classifier-tagger-tasks@facilities-910444929556.iam.gserviceaccount.com
-HTTP_ENDPOINT: https://europe-west2-facilities-910444929556.cloudfunctions.net/bq_security_classifier_03b_tagger

@@ -1,7 +1,0 @@
-# Quote values with "" to enforce String datatype (including numeric values)
-INFO_TYPES: "EMAIL_ADDRESS, PHONE_NUMBER"
-MIN_LIKELIHOOD: "LIKELY"
-MAX_FINDINGS_PER_ITEM: "50"
-#  Select value from  SAMPLE_METHOD_UNSPECIFIED=0  TOP=1  RANDOM_START=2
-SAMPLING_METHOD: "2"
-ROWS_LIMIT_PERCENT: "10"

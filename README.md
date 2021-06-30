@@ -65,6 +65,7 @@ deactivate
 Enable Cloud Build API - needed to deploy cloud functions
 
 
+
 # TODO
 * SA for starter function
 * Invoke starter function per project from a config parser function 
@@ -110,7 +111,7 @@ Guide: https://cloud.google.com/functions/docs/writing/http
 mvn compile
 mvn function:run
   
-gcloud functions deploy bq_security_classifier_02_inspector --region="${REGION}" --entry-point functions.Tagger --runtime java11 --trigger-http --timeout=540s
+gcloud functions deploy bq_security_classifier_02_inspector --region="${REGION}" --entry-point functions.tagger.Tagger --runtime java11 --trigger-http --timeout=540s
 
 test payload
 {
