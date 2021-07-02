@@ -28,4 +28,14 @@ projects_include_list= "facilities-910444929556, zbooks-910444929556"
 datasets_exclude_list = "facilities-910444929556.bq_security_classifier_4"
 tables_exclude_list = ""
 
+target_projects = ["facilities-910444929556", "zbooks-910444929556", "project3"]
+
+# for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
+# generated policy_tag_id
+infoTypeName_policyTagName_map = [
+    {info_type = "EMAIL_ADDRESS", policy_tag = "email"},
+    {info_type = "PHONE_NUMBER", policy_tag = "phone"},
+    {info_type = "ADDRESS", policy_tag = "address"}
+  ]
+
 

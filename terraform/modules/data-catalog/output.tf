@@ -3,19 +3,10 @@ output "taxonomy_id" {
 }
 
 
-output "confidential_project1" {
-  value = google_data_catalog_policy_tag.confidential_project1.id
-}
-
-output "email_project1" {
-  value = google_data_catalog_policy_tag.confidential_project1_email.id
-}
-
-
-output "confidential_project2" {
-  value = google_data_catalog_policy_tag.confidential_project2.id
-}
-
-output "email_project2" {
-  value = google_data_catalog_policy_tag.confidential_project2_email.id
+output "created_policy_tags" {
+  value = [for entry in google_data_catalog_policy_tag.children: {
+    policy_tag_id = entry.id
+    project = trim(element(split("|", entry.description),0)," ")
+    info_type = trim(element(split("|", entry.description),1), " ")
+  }]
 }

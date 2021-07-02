@@ -79,5 +79,20 @@ variable "tables_exclude_list" {}
 
 variable "taxonomy_name" {default = "bq_security_classifier"}
 
+# for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
+# generated policy_tag_id
+variable "infoTypeName_policyTagName_map" {
+  default = [
+    {info_type = "EMAIL_ADDRESS", policy_tag = "email"},
+    {info_type = "PHONE_NUMBER", policy_tag = "phone"},
+    {info_type = "ADDRESS", policy_tag = "address"}
+  ]
+}
+
+variable "target_projects" {}
+
+
+
+
 
 

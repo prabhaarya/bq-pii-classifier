@@ -16,6 +16,8 @@ Every section has its own priority list
 - [x] Code cleanup/refactoring/unit tests perspective
 - [x] enable cross-projects permissions (including column level security on target project)
 - [x] implement Multi-project heirarchy/taxonomy to control conf access on project level and org level
+- [x] Auto generate policy tags for projects
+- [x] auto generate policy tags mapping view for projects
 - [ ] Configure info types and taxonomy to scan VM fake data
 - [ ] Demo to VM
 

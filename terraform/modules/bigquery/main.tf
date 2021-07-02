@@ -254,6 +254,12 @@ SQL
 
 ######## CONFIG VIEWS #####################################################################
 
+locals {
+  infotypes_policytags_map_select_statements = [for entry in var.created_policy_tags:
+  "SELECT '${lookup(entry,"project","NA")}' AS project, '${lookup(entry,"info_type","NA")}' AS info_type, '${lookup(entry,"policy_tag_id","NA")}' AS policy_tag"
+  ]
+}
+
 resource "google_bigquery_table" "config_view_infotypes_policytags_map" {
   dataset_id = google_bigquery_dataset.results_dataset.dataset_id
   table_id   = "v_config_infotypes_policytags_map"
@@ -263,11 +269,8 @@ resource "google_bigquery_table" "config_view_infotypes_policytags_map" {
 
   view {
     use_legacy_sql = false
-    query = <<SQL
-SELECT '${var.project}' AS project, 'EMAIL_ADDRESS' AS info_type, '${var.taxonomy_project1_email_id}' AS policy_tag
-UNION ALL
-SELECT 'zbooks-910444929556' AS project, 'EMAIL_ADDRESS' AS info_type, '${var.taxonomy_project2_email_id}' AS policy_tag
-SQL
+    query = join(" UNION ALL \r\n", local.infotypes_policytags_map_select_statements)
+
   }
 }
 
