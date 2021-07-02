@@ -11,12 +11,18 @@ import com.google.cloud.Tuple;
 import com.google.cloud.functions.HttpFunction;
 import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.logging.Level;
+
 import com.google.api.services.bigquery.model.TableFieldSchema.PolicyTags;
 import com.google.api.services.bigquery.model.Table;
+import com.google.cloud.pso.bq_security_classifier.services.BigQueryService;
+import com.google.cloud.pso.bq_security_classifier.services.BigQueryServiceImpl;
+import com.google.cloud.pso.bq_security_classifier.services.DlpService;
+import com.google.cloud.pso.bq_security_classifier.services.DlpServiceImpl;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -51,6 +57,27 @@ public class Tagger implements HttpFunction {
 
     private static final Gson gson = new Gson();
 
+    TaggerHelper taggerHelper;
+    DlpService dlpService;
+    BigQueryService bqService;
+    Environment environment;
+
+    // output of the call
+    Map<String, String> finalFieldsToPolicyTags;
+
+    public Map<String, String> getFinalFieldsToPolicyTags() {
+        return finalFieldsToPolicyTags;
+    }
+
+
+    public Tagger() throws IOException {
+        dlpService = new DlpServiceImpl();
+        bqService = new BigQueryServiceImpl();
+        environment = new Environment();
+        finalFieldsToPolicyTags = new HashMap<>();
+        taggerHelper = new TaggerHelper(bqService);
+    }
+
 
     @Override
     public void service(HttpRequest request, HttpResponse response) throws IOException, InterruptedException {
@@ -66,39 +93,39 @@ public class Tagger implements HttpFunction {
         logger.logInfoWithTracker(trackingId, String.format("Parsed arguments : %s", options.toString()));
 
         try {
-            DlpServiceClient dlpServiceClient = DlpServiceClient.create();
-            DlpJob dlpJob = dlpServiceClient.getDlpJob(options.getDlpJobName());
 
-            if (dlpJob.getState() != DlpJob.JobState.DONE) {
-                // TODO: handle job states
+            DlpJob.JobState dlpJobState = dlpService.getJobState(options.getDlpJobName());
+
+            if (dlpJobState != DlpJob.JobState.DONE) {
                 String msg = String.format("DLP Job '%s' state must be 'DONE'. Current state : '%s'. Function call will terminate. ",
                         options.getDlpJobName(),
-                        dlpJob.getState());
+                        dlpJobState);
                 logger.logSevereWithTracker(trackingId, msg);
                 writer.printf(msg);
                 throw new RuntimeException(msg);
             }
 
-
-            BigQueryTable targetTable = dlpJob.getInspectDetails()
-                    .getRequestedOptions()
-                    .getJobConfig()
-                    .getStorageConfig()
-                    .getBigQueryOptions()
-                    .getTableReference();
-
+            BigQueryTable inspectedTable = dlpService.getInspectedTable(options.getDlpJobName());
 
             // Query DLP results in BQ and return a dict of bq_column=policy_tag
-            Map<String, String> fieldsToPolicyTagsMap = getFieldsToPolicyTagsMap(options.getDlpJobName());
+            Map<String, String> fieldsToPolicyTagsMap = taggerHelper.getFieldsToPolicyTagsMap(
+                    environment.getProjectId(),
+                    environment.getDatasetId(),
+                    environment.getBqViewFieldsFindings(),
+                    options.getDlpJobName());
+
             logger.logInfoWithTracker(trackingId, String.format("Computed Fields to Policy Tags mapping : %s", fieldsToPolicyTagsMap.toString()));
 
             // Apply policy tags to columns in BigQuery
-            applyPolicyTags(
-                    targetTable.getProjectId(),
-                    targetTable.getDatasetId(),
-                    targetTable.getTableId(),
+            List<TableFieldSchema> updatedFields = applyPolicyTags(
+                    inspectedTable.getProjectId(),
+                    inspectedTable.getDatasetId(),
+                    inspectedTable.getTableId(),
                     fieldsToPolicyTagsMap,
                     trackingId);
+
+            // used in unit testing
+            finalFieldsToPolicyTags = mapFieldsToPolicyTags(updatedFields);
 
             logger.logFunctionEnd(trackingId);
 
@@ -128,84 +155,18 @@ public class Tagger implements HttpFunction {
 
         } catch (JsonParseException e) {
 
-            logger.logSevereWithTracker("",  "Error parsing JSON: " + e.getMessage());
+            logger.logSevereWithTracker("", "Error parsing JSON: " + e.getMessage());
             throw e;
         }
     }
 
-    public Map<String, String> getFieldsToPolicyTagsMap(String dlpJobName) throws InterruptedException {
+    public List<TableFieldSchema> applyPolicyTags(String projectId,
+                                                  String datasetId,
+                                                  String tableId,
+                                                  Map<String, String> fieldsToPolicyTagsMap,
+                                                  String trackingId) throws IOException {
 
-        BigQuery bigquery = BigQueryOptions.getDefaultInstance().getService();
-
-        String projectId = Utils.getConfigFromEnv("PROJECT_ID", true);
-        String datasetId = Utils.getConfigFromEnv("DATASET_ID", true);
-        String filedsToInfoTypeFindingsView = Utils.getConfigFromEnv("BQ_VIEW_FIELDS_FINDINGS", true);
-
-        // This view is defined in Terraform based on the dlp results table. If it needs update, do it in Terraform
-        String queryTemplate = "SELECT field_name, policy_tag FROM `%s.%s.%s` WHERE job_name = '%s' ";
-
-        String formattedQuery = String.format(queryTemplate,
-                projectId,
-                datasetId,
-                filedsToInfoTypeFindingsView,
-                dlpJobName
-        );
-
-        QueryJobConfiguration queryConfig =
-                QueryJobConfiguration.newBuilder(formattedQuery)
-                        .setUseLegacySql(false)
-                        .build();
-
-        // Create a job ID so that we can safely retry.
-        JobId jobId = JobId.of(UUID.randomUUID().toString());
-        Job queryJob = bigquery.create(JobInfo.newBuilder(queryConfig).setJobId(jobId).build());
-
-        // Wait for the query to complete.
-        queryJob = queryJob.waitFor();
-
-        // Check for errors
-        if (queryJob == null) {
-            throw new RuntimeException("Job no longer exists");
-        } else if (queryJob.getStatus().getError() != null) {
-            // You can also look at queryJob.getStatus().getExecutionErrors() for all
-            // errors, not just the latest one.
-            throw new RuntimeException(queryJob.getStatus().getError().toString());
-        }
-
-        TableResult result = queryJob.getQueryResults();
-
-        // Construct a mapping between field names and DLP infotypes
-        Map<String, String> fieldsToPolicyTagMap = new HashMap<>();
-        for (FieldValueList row : result.iterateAll()) {
-            String fieldName = row.get("field_name").getStringValue();
-            String infoTypeName = row.get("policy_tag").getStringValue();
-            fieldsToPolicyTagMap.put(fieldName, infoTypeName);
-        }
-
-        return fieldsToPolicyTagMap;
-    }
-
-    public void applyPolicyTags(String projectId,
-                                String datasetId,
-                                String tableId,
-                                Map<String, String> fieldsToPolicyTagsMap,
-                                String trackingId) throws IOException {
-
-        // TODO: Look for wrappers on top of these API calls
-        Bigquery bq = new Bigquery.Builder(
-                new NetHttpTransport(),
-                new JacksonFactory(),
-                new HttpCredentialsAdapter(GoogleCredentials
-                        .getApplicationDefault()
-                        .createScoped(BigqueryScopes.all())))
-                .setApplicationName(applicationName)
-                .build();
-
-        Table targetTable = bq.tables()
-                .get(projectId, datasetId, tableId)
-                .execute();
-
-        List<TableFieldSchema> currentFields = targetTable.getSchema().getFields();
+        List<TableFieldSchema> currentFields = bqService.getTableSchemaFields(projectId, datasetId, tableId);
         List<TableFieldSchema> updatedFields = new ArrayList<>();
 
         // store all actions on policy tags and log them after patching the BQ table
@@ -220,6 +181,8 @@ public class Tagger implements HttpFunction {
 
                 // if no policy exists on the field, attach one
                 if (fieldPolicyTags == null) {
+
+                    // update the field with policy tag
                     fieldPolicyTags = new PolicyTags().setNames(Arrays.asList(policyTagId));
                     field.setPolicyTags(fieldPolicyTags);
 
@@ -243,6 +206,7 @@ public class Tagger implements HttpFunction {
                     // update existing tags only if they belong to the same taxonomy
                     if (existingTaxonomy.equals(newTaxonomy)) {
 
+                        // update the field with policy tag
                         fieldPolicyTags.setNames(Arrays.asList(policyTagId));
 
                         String logMsg = String.format("%s | %s | %s | %s | %s | %s | %s | %s",
@@ -273,20 +237,35 @@ public class Tagger implements HttpFunction {
                     }
                 }
             }
+            // add all fields that exists in the table (after updates) to be able to patch the table
             updatedFields.add(field);
         }
 
         // patch the table with the new schema including new policy tags
-        bq.tables()
-                .patch(projectId,
-                        datasetId,
-                        tableId,
-                        new Table().setSchema(new TableSchema().setFields(updatedFields)))
-                .execute();
+        bqService.patchTable(projectId, datasetId, tableId, updatedFields);
 
         // log all actions on policy tags after bq.tables.patch operation is successful
-        for (Tuple<String, Level> t: policyUpdateLogs){
+        for (Tuple<String, Level> t : policyUpdateLogs) {
             logger.logWithTracker(tagHistoryLog, trackingId, t.x(), t.y());
         }
+
+        return updatedFields;
     }
+
+
+
+    public static Map<String, String> mapFieldsToPolicyTags(List<TableFieldSchema> fields){
+        Map<String, String> result = new HashMap<>();
+        for(TableFieldSchema field: fields){
+            PolicyTags policyTags = field.getPolicyTags();
+            if(policyTags == null){
+                result.put(field.getName(),"");
+            }else{
+                // only one policy tag per column is allowed by BigQuery
+                result.put(field.getName(),policyTags.getNames().get(0));
+            }
+        }
+        return result;
+    }
+
 }

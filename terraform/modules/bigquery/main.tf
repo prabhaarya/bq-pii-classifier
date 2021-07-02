@@ -205,7 +205,8 @@ SELECT
 o.job_name,
 l.record_location.field_id.name AS field_name,
 o.info_type.name AS info_type,
-o.likelihood
+o.likelihood,
+l.record_location.record_key.big_query_key.table_reference.project_id AS project_id
 FROM `${google_bigquery_table.results_table.project}.${google_bigquery_table.results_table.dataset_id}.${google_bigquery_table.results_table.table_id}` o
 , UNNEST(location.content_locations) l
 
@@ -229,7 +230,9 @@ c.policy_tag,
 -- in case one field has more than one infotype, select the highest likelihood
 RANK() OVER(PARTITION BY o.job_name, o.field_name ORDER BY lh.likelihood_rank DESC) AS rank,
 FROM `dlp_results` o
-INNER JOIN config c ON c.project = '${var.project}' AND c.info_type = o.info_type
+INNER JOIN config c ON
+c.project = o.project_id AND
+c.info_type = o.info_type
 INNER JOIN likelihood lh ON o.likelihood = lh.likelihood
 )
 , row_numbers AS
@@ -248,6 +251,9 @@ SQL
 }
 }
 
+
+######## CONFIG VIEWS #####################################################################
+
 resource "google_bigquery_table" "config_view_infotypes_policytags_map" {
   dataset_id = google_bigquery_dataset.results_dataset.dataset_id
   table_id   = "v_config_infotypes_policytags_map"
@@ -258,7 +264,9 @@ resource "google_bigquery_table" "config_view_infotypes_policytags_map" {
   view {
     use_legacy_sql = false
     query = <<SQL
-SELECT '${var.project}' AS project, 'EMAIL_ADDRESS' AS info_type, '${var.taxonomy_email_id}' AS policy_tag
+SELECT '${var.project}' AS project, 'EMAIL_ADDRESS' AS info_type, '${var.taxonomy_project1_email_id}' AS policy_tag
+UNION ALL
+SELECT 'zbooks-910444929556' AS project, 'EMAIL_ADDRESS' AS info_type, '${var.taxonomy_project2_email_id}' AS policy_tag
 SQL
   }
 }

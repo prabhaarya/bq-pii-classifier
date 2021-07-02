@@ -2,16 +2,15 @@ package com.google.cloud.pso.bq_security_classifier.functions.listener;
 
 import com.google.cloud.functions.BackgroundFunction;
 import com.google.cloud.functions.Context;
-import com.google.cloud.pso.bq_security_classifier.functions.tagger.Tagger;
 import com.google.cloud.pso.bq_security_classifier.helpers.LoggingHelper;
 import com.google.cloud.pso.bq_security_classifier.helpers.Utils;
+import com.google.cloud.pso.bq_security_classifier.services.CloudTasksService;
+import com.google.cloud.pso.bq_security_classifier.services.CloudTasksServiceImpl;
 import com.google.cloud.tasks.v2.*;
 import com.google.protobuf.ByteString;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 public class Listener implements BackgroundFunction<PubSubMessage> {
@@ -27,11 +26,29 @@ public class Listener implements BackgroundFunction<PubSubMessage> {
     private static final String trackerLog = "tracker-log";
     private static final Integer functionNumber = 3;
 
+    private CloudTasksService cloudTasksService;
+    private Environment environment;
+
+    private Task taskRequest;
+    private Task submittedTask;
+
+    public Task getSubmittedTask(){
+        return this.submittedTask;
+    }
+
+    public Task getTaskRequest(){
+        return this.taskRequest;
+    }
+
+    public Listener() throws IOException {
+        cloudTasksService = new CloudTasksServiceImpl();
+        environment = new Environment();
+    }
+
     @Override
     public void accept(PubSubMessage pubSubMessage, Context context) throws IOException {
 
-
-        String dlpJobName = pubSubMessage.attributes.getOrDefault("DlpJobName", "");
+        String dlpJobName = pubSubMessage.getAttributes().getOrDefault("DlpJobName", "");
 
         if(dlpJobName.isBlank()){
             throw new IllegalArgumentException("PubSub message attribute 'DlpJobName' is missing.");
@@ -44,38 +61,32 @@ public class Listener implements BackgroundFunction<PubSubMessage> {
 
         logger.logInfoWithTracker(trackingId, String.format("Parsed DlpJobName %s", dlpJobName));
 
-        String projectId = Utils.getConfigFromEnv("PROJECT_ID", true);
-        String regionId = Utils.getConfigFromEnv("REGION_ID", true);
-        String queueId = Utils.getConfigFromEnv("QUEUE_ID", true);
-        String serviceAccountEmail = Utils.getConfigFromEnv("SA_EMAIL", true);
-        String httpEndPoint = Utils.getConfigFromEnv("HTTP_ENDPOINT", true);
-
-        CloudTasksClient client = CloudTasksClient.create();
         String payload = String.format("{\"dlpJobName\":\"%s\"}", dlpJobName);
 
         // Construct the fully qualified queue name.
-        String queuePath = QueueName.of(projectId, regionId, queueId).toString();
+        String queuePath = QueueName.of(environment.getProjectId(),
+                environment.getRegionId(),
+                environment.getTaggerQueueId()).toString();
 
-        // Add your service account email to construct the OIDC token.
-        // in order to add an authentication header to the request.
-        OidcToken.Builder oidcTokenBuilder =
-                OidcToken.newBuilder().setServiceAccountEmail(serviceAccountEmail);
+        OidcToken oidcToken = OidcToken.newBuilder()
+                .setServiceAccountEmail(environment.getTaggerTaskServiceAccountEmail())
+                .build();
 
         // Construct the task body.
-        Task.Builder taskBuilder =
+        taskRequest =
                 Task.newBuilder()
                         .setHttpRequest(
                                 HttpRequest.newBuilder()
                                         .setBody(ByteString.copyFrom(payload, Charset.defaultCharset()))
-                                        .setUrl(httpEndPoint)
+                                        .setUrl(environment.getTaggerFunctionHttpEndpoint())
                                         .setHttpMethod(HttpMethod.POST)
-                                        .setOidcToken(oidcTokenBuilder)
-                                        .build());
+                                        .setOidcToken(oidcToken)
+                                        .build()).build();
 
         // Send create task request.
-        Task task = client.createTask(queuePath, taskBuilder.build());
+        submittedTask = cloudTasksService.submitTask(taskRequest, queuePath);
 
-        logger.logInfoWithTracker(trackingId, String.format("Task created: %s", task.getName()));
+        logger.logInfoWithTracker(trackingId, String.format("Task created: %s", submittedTask.getName()));
 
         logger.logFunctionEnd(trackingId);
     }

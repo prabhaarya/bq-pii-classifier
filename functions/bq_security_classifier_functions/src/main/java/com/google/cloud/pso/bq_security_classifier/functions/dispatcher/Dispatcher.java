@@ -4,8 +4,11 @@ package com.google.cloud.pso.bq_security_classifier.functions.dispatcher;
 import com.google.cloud.functions.HttpFunction;
 import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
-import com.google.cloud.pso.bq_security_classifier.functions.inspector.Inspector;
 import com.google.cloud.pso.bq_security_classifier.helpers.LoggingHelper;
+import com.google.cloud.pso.bq_security_classifier.services.BigQueryService;
+import com.google.cloud.pso.bq_security_classifier.services.BigQueryServiceImpl;
+import com.google.cloud.pso.bq_security_classifier.services.CloudTasksService;
+import com.google.cloud.pso.bq_security_classifier.services.CloudTasksServiceImpl;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -14,11 +17,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import com.google.cloud.pso.bq_security_classifier.helpers.Utils;
-import com.google.cloud.pso.bq_security_classifier.functions.dispatcher.DispatcherService;
 
+import com.google.cloud.pso.bq_security_classifier.helpers.Utils;
 
 
 public class Dispatcher implements HttpFunction {
@@ -35,6 +35,28 @@ public class Dispatcher implements HttpFunction {
     private static final Integer functionNumber = 1;
     private static final Gson gson = new Gson();
 
+    private BigQueryService bqService;
+    private CloudTasksService cloudTasksService;
+    private Environment environment;
+
+    //  output of the function
+    List<String> inspectedTables;
+    public List<String> getInspectedTables() {
+        return inspectedTables;
+    }
+
+    public Dispatcher() throws IOException {
+        environment = new Environment();
+        bqService = new BigQueryServiceImpl();
+        cloudTasksService = new CloudTasksServiceImpl();
+    }
+
+    public Dispatcher(Environment environment, BigQueryService bqService, CloudTasksService cloudTasksService) throws IOException {
+        this.environment = environment;
+        this.bqService = bqService;
+        this.cloudTasksService = cloudTasksService;
+    }
+
     @Override
     public void service(HttpRequest request, HttpResponse response)
             throws IOException {
@@ -49,14 +71,11 @@ public class Dispatcher implements HttpFunction {
         logger.logInfoWithTracker(runId, runIdMsg);
         logger.logFunctionStart(runId);
 
-        String projectId = Utils.getConfigFromEnv("PROJECT_ID", true);
-        String regionId = Utils.getConfigFromEnv("REGION_ID", true);
-        String queueId = Utils.getConfigFromEnv("QUEUE_ID", true);
-        String serviceAccountEmail =Utils.getConfigFromEnv("SA_EMAIL", true);
-        String httpEndPoint = Utils.getConfigFromEnv("HTTP_ENDPOINT", true);
-        String resultsDataset = Utils.getConfigFromEnv("BQ_RESULTS_DATASET", true);
-        String resultsTable = Utils.getConfigFromEnv("BQ_RESULTS_TABLE", true);
-        String pubsubNotificationTopic = Utils.getConfigFromEnv("PUBSUB_NOTIFICATION_TOPIC", true);
+        String projectId = environment.getProjectId();
+        String regionId = environment.getRegionId();
+        String queueId = environment.getInspectorTaskQueue();
+        String serviceAccountEmail = environment.getInspectorTaskServiceAccountEmail();
+        String httpEndPoint = environment.getInspectorFunctionHttpEndpoint();
 
         /**
          * Detecting which resources to scan is done bottom up TABLES > DATASETS > PROJECTS where lower levels configs (e.g. Tables)
@@ -104,14 +123,13 @@ public class Dispatcher implements HttpFunction {
             throw new IllegalArgumentException(msg);
         }
 
-        DispatcherService dispatcherService = new DispatcherService(
+        DispatcherHelper dispatcherHelper = new DispatcherHelper(
+                bqService,
+                cloudTasksService,
                 logger,
                 projectId,
                 regionId,
                 runId,
-                resultsDataset,
-                resultsTable,
-                pubsubNotificationTopic,
                 queueId,
                 httpEndPoint,
                 serviceAccountEmail,
@@ -122,11 +140,11 @@ public class Dispatcher implements HttpFunction {
                 tableExcludeList
         );
 
-        dispatcherService.execute();
+        inspectedTables = dispatcherHelper.execute();
 
         logger.logFunctionEnd(runId);
 
-        outputMessages.addAll(dispatcherService.getOutputMessages());
+        outputMessages.addAll(dispatcherHelper.getOutputMessages());
         for(String msg: outputMessages){
             writer.printf("%s \r\n", msg);
         }

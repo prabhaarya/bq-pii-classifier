@@ -5,13 +5,7 @@ public class InspectorTask {
     private String targetTableProject;
     private String targetTableDataset;
     private String targetTable;
-    private String resultsTableProject;
-    private String resultsTableDataset;
-    private String resultsTable;
-    private String pubSubNotificationTopic;
-    private String dlpProject;
-    private String dlpRegion;
-    private String queuePath;
+    private String queueId;
     private String httpEndPoint;
     private String trackingId;
 
@@ -40,60 +34,12 @@ public class InspectorTask {
         this.targetTable = targetTable;
     }
 
-    public String getResultsTableProject() {
-        return resultsTableProject;
+    public String getQueueId() {
+        return queueId;
     }
 
-    public void setResultsTableProject(String resultsTableProject) {
-        this.resultsTableProject = resultsTableProject;
-    }
-
-    public String getResultsTableDataset() {
-        return resultsTableDataset;
-    }
-
-    public void setResultsTableDataset(String resultsTableDataset) {
-        this.resultsTableDataset = resultsTableDataset;
-    }
-
-    public String getResultsTable() {
-        return resultsTable;
-    }
-
-    public void setResultsTable(String resultsTable) {
-        this.resultsTable = resultsTable;
-    }
-
-    public String getPubSubNotificationTopic() {
-        return pubSubNotificationTopic;
-    }
-
-    public void setPubSubNotificationTopic(String pubSubNotificationTopic) {
-        this.pubSubNotificationTopic = pubSubNotificationTopic;
-    }
-
-    public String getDlpProject() {
-        return dlpProject;
-    }
-
-    public void setDlpProject(String dlpProject) {
-        this.dlpProject = dlpProject;
-    }
-
-    public String getDlpRegion() {
-        return dlpRegion;
-    }
-
-    public void setDlpRegion(String dlpRegion) {
-        this.dlpRegion = dlpRegion;
-    }
-
-    public String getQueuePath() {
-        return queuePath;
-    }
-
-    public void setQueuePath(String queuePath) {
-        this.queuePath = queuePath;
+    public void setQueueId(String queueId) {
+        this.queueId = queueId;
     }
 
 
@@ -119,13 +65,7 @@ public class InspectorTask {
                 "targetTableProject='" + targetTableProject + '\'' +
                 ", targetTableDataset='" + targetTableDataset + '\'' +
                 ", targetTable='" + targetTable + '\'' +
-                ", resultsTableProject='" + resultsTableProject + '\'' +
-                ", resultsTableDataset='" + resultsTableDataset + '\'' +
-                ", resultsTable='" + resultsTable + '\'' +
-                ", pubSubNotificationTopic='" + pubSubNotificationTopic + '\'' +
-                ", dlpProject='" + dlpProject + '\'' +
-                ", dlpRegion='" + dlpRegion + '\'' +
-                ", queuePath='" + queuePath + '\'' +
+                ", queuePath='" + queueId + '\'' +
                 ", httpEndPoint='" + httpEndPoint + '\'' +
                 ", trackingId='" + trackingId + '\'' +
                 '}';

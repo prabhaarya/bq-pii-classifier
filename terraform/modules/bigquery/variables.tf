@@ -17,4 +17,5 @@ variable "logging_sink_sa" {
 }
 
 # infotype-policytag config mapping
-variable "taxonomy_email_id" {}
+variable "taxonomy_project1_email_id" {}
+variable "taxonomy_project2_email_id" {}

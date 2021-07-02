@@ -1,4 +1,4 @@
-package functions;
+package com.google.cloud.pso.bq_security_classifier.helpers;
 
 import org.junit.Test;
 import static org.junit.Assert.*;

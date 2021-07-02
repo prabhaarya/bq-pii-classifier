@@ -1,11 +1,11 @@
 package com.google.cloud.pso.bq_security_classifier.functions.inspector;
 
-import com.google.cloud.dlp.v2.DlpServiceClient;
 import com.google.cloud.functions.HttpFunction;
 import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
-import com.google.cloud.pso.bq_security_classifier.functions.listener.Listener;
 import com.google.cloud.pso.bq_security_classifier.helpers.LoggingHelper;
+import com.google.cloud.pso.bq_security_classifier.services.DlpService;
+import com.google.cloud.pso.bq_security_classifier.services.DlpServiceImpl;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -13,10 +13,8 @@ import com.google.privacy.dlp.v2.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import com.google.cloud.pso.bq_security_classifier.helpers.Utils;
-import com.google.cloud.pso.bq_security_classifier.functions.inspector.FunctionOptions;
 
 public class Inspector implements HttpFunction {
 
@@ -32,6 +30,25 @@ public class Inspector implements HttpFunction {
     private static final Integer functionNumber = 2;
     private static final Gson gson = new Gson();
 
+    private DlpService dlpService;
+    private Environment environment;
+
+    private DlpJob submittedDlpJob;
+    public DlpJob getSubmittedDlpJob(){
+        return submittedDlpJob;
+    }
+
+    private CreateDlpJobRequest createDlpJobRequest;
+    public CreateDlpJobRequest  getCreateDlpJobRequest (){
+        return createDlpJobRequest;
+    }
+
+
+    public Inspector() throws IOException {
+        dlpService = new DlpServiceImpl();
+        environment = new Environment();
+    }
+
     @Override
     public void service(HttpRequest request, HttpResponse response)
             throws IOException {
@@ -46,10 +63,32 @@ public class Inspector implements HttpFunction {
         try {
             logger.logInfoWithTracker(options.getTrackingId(), String.format("Parsed arguments %s", options.toString()));
 
-            String jobName = createJobs(options);
+            InspectJobConfig jobConfig = createJob(options.getInputProjectId(),
+                    options.getInputDatasetId(),
+                    options.getInputTableId(),
+                    Integer.parseInt(environment.getSamplingMethod()),
+                    Integer.parseInt(environment.getRowsLimitPercent()),
+                    environment.getMinLikelihood(),
+                    Integer.parseInt(environment.getMaxFindings()),
+                    environment.getProjectId(),
+                    environment.getBqResultsDataset(),
+                    environment.getBqResultsTable(),
+                    environment.getDlpNotificationTopic(),
+                    environment.getDlpInspectionTemplateId()
+                    );
 
-            resultMessage = String.format("DLP job created successfully id='%s'", jobName);
-            logger.logInfoWithTracker(options.getTrackingId(), resultMessage);
+            createDlpJobRequest = CreateDlpJobRequest.newBuilder()
+                            .setJobId(options.getTrackingId())
+                            .setParent(LocationName.of(environment.getProjectId(), environment.getRegionId()).toString())
+                            .setInspectJob(jobConfig)
+                            .build();
+
+            submittedDlpJob = dlpService.submitJob(createDlpJobRequest);
+
+            writer.printf(submittedDlpJob.getName());
+            logger.logInfoWithTracker(options.getTrackingId(), String.format("DLP job created successfully id='%s'",
+                    submittedDlpJob.getName()));
+            logger.logFunctionEnd(options.getTrackingId());
         }catch (Exception ex){
 
             resultMessage = String.format("Function encountered an exception ='%s'", ex);
@@ -57,35 +96,34 @@ public class Inspector implements HttpFunction {
             //to fail the function and report to Cloud Error Reporting.
             throw ex;
         }
-
-        logger.logFunctionEnd(options.getTrackingId());
-
-        writer.printf(resultMessage);
     }
 
-    public static String createJobs(FunctionOptions options) throws IOException {
-
-        // get configs from environment
-        String minLiklihoodStr = Utils.getConfigFromEnv("MIN_LIKELIHOOD", true);
-        String maxFindingsStr =  Utils.getConfigFromEnv("MAX_FINDINGS_PER_ITEM", true);
-        String samplingMethodStr =  Utils.getConfigFromEnv("SAMPLING_METHOD", true);
-        String rowsLimitPercentStr =  Utils.getConfigFromEnv("SAMPLING_METHOD", true);
-        String dlpInspectionTemplateId =  Utils.getConfigFromEnv("DLP_INSPECTION_TEMPLATE_ID", true);
-
-        DlpServiceClient dlpServiceClient = DlpServiceClient.create();
+    public static InspectJobConfig createJob(
+            String targetTableProject,
+            String targetTableDataset,
+            String targetTable,
+            Integer samplingMethod,
+            Integer rowsLimitPercent,
+            String minimumLikelihood,
+            Integer maxFindings,
+            String resultsProject,
+            String resultsDataset,
+            String resultsTable,
+            String dlpNotificationsTopic,
+            String dlpInspectionTemplateId) throws IOException {
 
         // 1. Specify which table to inspect
 
         BigQueryTable bqTable = BigQueryTable.newBuilder()
-                .setProjectId(options.getInputProjectId())
-                .setDatasetId(options.getInputDatasetId())
-                .setTableId(options.getInputTableId())
+                .setProjectId(targetTableProject)
+                .setDatasetId(targetTableDataset)
+                .setTableId(targetTable)
                 .build();
 
         BigQueryOptions bqOptions = BigQueryOptions.newBuilder()
                 .setTableReference(bqTable)
-                .setSampleMethod(BigQueryOptions.SampleMethod.forNumber(Integer.parseInt(samplingMethodStr)))
-                .setRowsLimitPercent(Integer.parseInt(rowsLimitPercentStr))
+                .setSampleMethod(BigQueryOptions.SampleMethod.forNumber(samplingMethod))
+                .setRowsLimitPercent(rowsLimitPercent)
                 .build();
 
         StorageConfig storageConfig =
@@ -96,12 +134,12 @@ public class Inspector implements HttpFunction {
 
         // The minimum likelihood required before returning a match:
         // See: https://cloud.google.com/dlp/docs/likelihood
-        Likelihood minLikelihood = Likelihood.valueOf(minLiklihoodStr);
+        Likelihood minLikelihood = Likelihood.valueOf(minimumLikelihood);
 
         // The maximum number of findings to report (0 = server maximum)
         InspectConfig.FindingLimits findingLimits =
                 InspectConfig.FindingLimits.newBuilder()
-                        .setMaxFindingsPerItem(Integer.parseInt(maxFindingsStr))
+                        .setMaxFindingsPerItem(maxFindings)
                         .build();
 
         InspectConfig inspectConfig =
@@ -111,14 +149,13 @@ public class Inspector implements HttpFunction {
                         .setLimits(findingLimits)
                         .build();
 
-
-        // 3. Specify saving detailed results to BigQuery.
+        // 2. Specify saving detailed results to BigQuery.
 
         // Save detailed findings to BigQuery
         BigQueryTable outputBqTable = BigQueryTable.newBuilder()
-                .setProjectId(options.getFindingsProjectId())
-                .setDatasetId(options.getFindingsDatasetId())
-                .setTableId(options.getFindingsTableId())
+                .setProjectId(resultsProject)
+                .setDatasetId(resultsDataset)
+                .setTableId(resultsTable)
                 .build();
         OutputStorageConfig outputStorageConfig = OutputStorageConfig.newBuilder()
                 .setTable(outputBqTable)
@@ -130,35 +167,22 @@ public class Inspector implements HttpFunction {
                 .setSaveFindings(saveFindingsActions)
                 .build();
 
-        // 4. Specify sending PubSub notification on completion.
+        // 3. Specify sending PubSub notification on completion.
         Action.PublishToPubSub publishToPubSub = Action.PublishToPubSub.newBuilder()
-                .setTopic(options.getNotificationPubSubTopic())
+                .setTopic(dlpNotificationsTopic)
                 .build();
         Action pubSubAction = Action.newBuilder()
                 .setPubSub(publishToPubSub)
                 .build();
 
         // Configure the inspection job we want the service to perform.
-        InspectJobConfig inspectJobConfig =
-                InspectJobConfig.newBuilder()
+        return InspectJobConfig.newBuilder()
                         .setInspectTemplateName(dlpInspectionTemplateId)
                         .setInspectConfig(inspectConfig)
                         .setStorageConfig(storageConfig)
                         .addActions(bqAction)
                         .addActions(pubSubAction)
                         .build();
-
-        // Construct the job creation request to be sent by the client.
-        CreateDlpJobRequest createDlpJobRequest =
-                CreateDlpJobRequest.newBuilder()
-                        .setJobId(options.getTrackingId())
-                        .setParent(LocationName.of(options.getDlpProject(), options.getDlpRegion()).toString())
-                        .setInspectJob(inspectJobConfig)
-                        .build();
-
-        // Send the job creation request and process the response.
-        DlpJob createdDlpJob = dlpServiceClient.createDlpJob(createDlpJobRequest);
-        return createdDlpJob.getName();
     }
 
     public FunctionOptions parseArgs(HttpRequest request) throws IOException {
@@ -173,28 +197,12 @@ public class Inspector implements HttpFunction {
         String inputProjectId = Utils.getArgFromJsonOrQueryParams(requestJson, request, "inputProjectId", true);
         String inputDatasetId = Utils.getArgFromJsonOrQueryParams(requestJson, request, "inputDatasetId",true);
         String inputTableId = Utils.getArgFromJsonOrQueryParams(requestJson, request, "inputTableId",true);
-
-        String findingsProjectId = Utils.getArgFromJsonOrQueryParams(requestJson, request, "findingsProjectId",true);
-        String findingsDatasetId = Utils.getArgFromJsonOrQueryParams(requestJson, request, "findingsDatasetId",true);
-        String findingsTableId = Utils.getArgFromJsonOrQueryParams(requestJson, request, "findingsTableId",true);
-
-        String notificationPubSubTopic = Utils.getArgFromJsonOrQueryParams(requestJson, request, "notificationPubSubTopic",true);
-
-        String dlpProject = Utils.getArgFromJsonOrQueryParams(requestJson, request, "dlpProject",true);
-        String dlpRegion = Utils.getArgFromJsonOrQueryParams(requestJson, request, "dlpRegion",true);
-
         String trackingId = Utils.getArgFromJsonOrQueryParams(requestJson, request, "trackingId",true);
 
         return new FunctionOptions(
                 inputProjectId,
                 inputDatasetId,
                 inputTableId,
-                findingsProjectId,
-                findingsDatasetId,
-                findingsTableId,
-                notificationPubSubTopic,
-                dlpProject,
-                dlpRegion,
                 trackingId
                 );
     }

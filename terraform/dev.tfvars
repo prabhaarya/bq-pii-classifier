@@ -29,5 +29,3 @@ datasets_exclude_list = "facilities-910444929556.bq_security_classifier_4"
 tables_exclude_list = ""
 
 
-
-

@@ -13,8 +13,11 @@ Every section has its own priority list
 - [x] Simplify tagger by creating an InfoType to taxonomy mapping in a BQ view (terraform)
 - [x] Change query to select one policy tag per field (in case multiple infotypes found)
 - [x] refactor all functions in one module
-- [ ] Discuss multi-project confedential data readers with VM and agree on solution
-- [ ] Code cleanup/refactoring/unit tests perspective
+- [x] Code cleanup/refactoring/unit tests perspective
+- [x] enable cross-projects permissions (including column level security on target project)
+- [x] implement Multi-project heirarchy/taxonomy to control conf access on project level and org level
+- [ ] Configure info types and taxonomy to scan VM fake data
+- [ ] Demo to VM
 
 # Logging & Reporting
 - [x] apply structured logging to all functions
@@ -22,8 +25,7 @@ Every section has its own priority list
 - [x] logging view for actions on tags
 
 # Testing
-- [ ] test cross-projects permissions (including column level security on target project)
-- [ ] Add unit tests
+- [x] Add unit tests
 - [ ] Test terraform inspection template with custom info types
 - [ ] Test on more projects, tables, data (stress test)
 
@@ -33,9 +35,7 @@ Every section has its own priority list
 - [ ] Queues config
 
 # Improvements should-do
-- [ ] mapping infotypes to taxonomies in terraform
 - [x] check if multi-location is required and implement it (not required now)
-- [ ] If needed for performance. Use projectStarter function to trigger dispatcher with one project only
  
 # Improvements nice-to-have
 - [ ] Monitoring dashboard and alerts

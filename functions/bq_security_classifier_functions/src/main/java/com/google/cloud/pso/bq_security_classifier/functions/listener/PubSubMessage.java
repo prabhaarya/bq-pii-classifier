@@ -7,4 +7,8 @@ public class PubSubMessage {
     public Map<String, String> attributes;
     public String messageId;
     public String publishTime;
+
+    public Map<String, String> getAttributes(){
+        return attributes;
+    }
 }

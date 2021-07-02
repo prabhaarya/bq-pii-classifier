@@ -67,10 +67,8 @@ resource "google_cloudfunctions_function" "function_dispatcher" {
     QUEUE_ID = var.inspector_queue_name
     SA_EMAIL = var.sa_inspector_tasks_email
     HTTP_ENDPOINT = google_cloudfunctions_function.function_inspector.https_trigger_url
-    PUBSUB_NOTIFICATION_TOPIC = var.dlp_notifications_topic_fqn
-    BQ_RESULTS_DATASET = var.bq_results_dataset
-    BQ_RESULTS_TABLE = var.bq_results_table
   }
+
 }
 
 
@@ -99,12 +97,17 @@ resource "google_cloudfunctions_function" "function_inspector" {
   service_account_email = var.sa_inspector_email
   #environment_variables = yamldecode(file("${local.inspector_dir}/config.yaml"))
   environment_variables = {
+    PROJECT_ID = var.project
+    REGION_ID = var.region
     DLP_INSPECTION_TEMPLATE_ID = var.dlp_inspection_template_id
     MIN_LIKELIHOOD = "LIKELY"
     MAX_FINDINGS_PER_ITEM = "50"
     #  Select value from  SAMPLE_METHOD_UNSPECIFIED=0  TOP=1  RANDOM_START=2
     SAMPLING_METHOD = "2"
     ROWS_LIMIT_PERCENT = "10"
+    DLP_NOTIFICATION_TOPIC = var.dlp_notifications_topic_fqn
+    BQ_RESULTS_DATASET = var.bq_results_dataset
+    BQ_RESULTS_TABLE = var.bq_results_table
   }
 }
 
@@ -163,6 +166,7 @@ resource "google_cloudfunctions_function" "function_tagger" {
     PROJECT_ID = var.project
     DATASET_ID = var.bq_results_dataset
     BQ_VIEW_FIELDS_FINDINGS = var.bq_view_dlp_fields_findings
+    DLP_RESULTS_TABLE = var.bq_results_table
   }
 }
 

@@ -21,6 +21,7 @@ module "data-catalog" {
   source = "./modules/data-catalog"
   project = var.project
   region = var.region
+  taxonomy_name = var.taxonomy_name
 }
 
 module "cloud_logging" {
@@ -39,7 +40,8 @@ module "bigquery" {
   logging_sink_sa = module.cloud_logging.service_account
 
   # infoType-Policytag mapping
-  taxonomy_email_id = module.data-catalog.email_id
+  taxonomy_project1_email_id = module.data-catalog.email_project1
+  taxonomy_project2_email_id = module.data-catalog.email_project2
 }
 
 module "cloud_tasks" {

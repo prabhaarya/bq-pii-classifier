@@ -77,5 +77,7 @@ variable "projects_include_list" {}
 variable "datasets_exclude_list" {}
 variable "tables_exclude_list" {}
 
+variable "taxonomy_name" {default = "bq_security_classifier"}
+
 
 
