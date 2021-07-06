@@ -18,7 +18,7 @@ Every section has its own priority list
 - [x] implement Multi-project heirarchy/taxonomy to control conf access on project level and org level
 - [x] Auto generate policy tags for projects
 - [x] auto generate policy tags mapping view for projects
-- [ ] Configure info types and taxonomy to scan VM fake data
+- [x] Configure info types and taxonomy to scan VM fake data
 - [ ] Demo to VM
 
 # Logging & Reporting
@@ -28,7 +28,7 @@ Every section has its own priority list
 
 # Testing
 - [x] Add unit tests
-- [ ] Test terraform inspection template with custom info types
+- [x] Test terraform inspection template with custom info types
 - [ ] Test on more projects, tables, data (stress test)
 
 
@@ -41,5 +41,10 @@ Every section has its own priority list
  
 # Improvements nice-to-have
 - [ ] Monitoring dashboard and alerts
+
+# Docs
+- [x] updated diagram
+- [] READ ME
+- [] blog post
 
 

@@ -16,4 +16,4 @@ tf init
 
 tf plan -var-file=dev.tfvars
 
-tf apply -var-file=dev.tfvars
+tf apply -var-file=dev.tfvars -auto-approve

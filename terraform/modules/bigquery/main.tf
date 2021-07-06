@@ -185,8 +185,9 @@ WITH config AS
 -- keep this in a WITH view to facilitate unit testing by creating static input
 SELECT * FROM `${google_bigquery_table.config_view_infotypes_policytags_map.project}.${google_bigquery_table.config_view_infotypes_policytags_map.dataset_id}.${google_bigquery_table.config_view_infotypes_policytags_map.table_id}`
 
--- SELECT 'service-project' AS project, 'EMAIL_ADDRESS' AS info_type, 'email_policy_tag' AS policy_tag UNION ALL
--- SELECT 'service-project' AS project, 'PERSON_NAME' AS info_type, 'person_policy_tag' AS policy_tag
+# SELECT 'p1' AS project, 'EMAIL_ADDRESS' AS info_type, 'email_policy_tag' AS policy_tag UNION ALL
+# SELECT 'p1' AS project, 'PERSON_NAME' AS info_type, 'person_policy_tag' AS policy_tag UNION ALL
+# SELECT 'p1' AS project, 'STREET_ADDRESS' AS info_type, 'street_address_policy_tag' AS policy_tag
 
 
 )
@@ -210,37 +211,44 @@ l.record_location.record_key.big_query_key.table_reference.project_id AS project
 FROM `${google_bigquery_table.results_table.project}.${google_bigquery_table.results_table.dataset_id}.${google_bigquery_table.results_table.table_id}` o
 , UNNEST(location.content_locations) l
 
--- test one field, one likelihood
--- SELECT 'field1' AS field_name, 'EMAIL_ADDRESS' AS info_type_name, 'LIKELY' AS likelihood UNION ALL
--- SELECT 'field1' AS field_name, 'PERSON_NAME' AS info_type_name, 'LIKELY' AS likelihood UNION ALL
--- test one field, diff likelihood
--- SELECT 'field2' AS field_name, 'EMAIL_ADDRESS' AS info_type_name, 'LIKELY' AS likelihood UNION ALL
--- SELECT 'field2' AS field_name, 'PERSON_NAME' AS info_type_name, 'VERY_LIKELY' AS likelihood UNION ALL
--- test one field
--- SELECT 'field3' AS field_name, 'EMAIL_ADDRESS' AS info_type_name, 'POSSIBLE' AS likelihood
+# test one field, one likelihood
+# SELECT 'field1' AS field_name, 'EMAIL_ADDRESS' AS info_type, 'LIKELY' AS likelihood, 'p1' AS project_id, 'j1' AS job_name  UNION ALL
+# SELECT 'field1' AS field_name, 'PERSON_NAME' AS info_type, 'LIKELY' AS likelihood, 'p1' AS project_id, 'j1' AS job_name UNION ALL
+# test one field, diff likelihood
+# SELECT 'field2' AS field_name, 'EMAIL_ADDRESS' AS info_type, 'LIKELY' AS likelihood, 'p1' AS project_id, 'j1' AS job_name UNION ALL
+# SELECT 'field2' AS field_name, 'PERSON_NAME' AS info_type, 'VERY_LIKELY' AS likelihood, 'p1' AS project_id, 'j1' AS job_name UNION ALL
+# test one field
+# SELECT 'field3' AS field_name, 'EMAIL_ADDRESS' AS info_type, 'POSSIBLE' AS likelihood, 'p1' AS project_id, 'j1' AS job_name UNION ALL
+# test one field, one likelyhood, different count of findings
+# SELECT 'field4' AS field_name, 'STREET_ADDRESS' AS info_type, 'LIKELY' AS likelihood, 'p1' AS project_id, 'j1' AS job_name UNION ALL
+# SELECT 'field4' AS field_name, 'STREET_ADDRESS' AS info_type, 'LIKELY' AS likelihood, 'p1' AS project_id, 'j1' AS job_name UNION ALL
+# SELECT 'field4' AS field_name, 'PERSON_NAME' AS info_type, 'LIKELY' AS likelihood, 'p1' AS project_id, 'j1' AS job_name
 )
 , ranking AS
 (
-SELECT DISTINCT
+SELECT
 o.job_name,
 o.field_name,
 o.info_type,
 lh.likelihood_rank,
 c.policy_tag,
+-- consider the numbe of findings in case of ties between likelihood level (e.g. 10 LIKELY EMAIL > 1 LIKELY PERSON_NAME )
+COUNT(1) findings,
 -- in case one field has more than one infotype, select the highest likelihood
-RANK() OVER(PARTITION BY o.job_name, o.field_name ORDER BY lh.likelihood_rank DESC) AS rank,
+RANK() OVER(PARTITION BY o.job_name, o.field_name, COUNT(1) ORDER BY lh.likelihood_rank DESC) AS rank,
 FROM `dlp_results` o
 INNER JOIN config c ON
 c.project = o.project_id AND
 c.info_type = o.info_type
 INNER JOIN likelihood lh ON o.likelihood = lh.likelihood
+GROUP BY 1,2,3,4,5
 )
 , row_numbers AS
 (
 SELECT
 r.*,
 -- in case one field has more than one infotype with the same likelihood, select one randomly
-ROW_NUMBER() OVER(PARTITION BY job_name, field_name, rank) AS row_number
+ROW_NUMBER() OVER(PARTITION BY job_name, field_name, rank ORDER BY findings DESC) AS row_number
 FROM ranking r
 )
 

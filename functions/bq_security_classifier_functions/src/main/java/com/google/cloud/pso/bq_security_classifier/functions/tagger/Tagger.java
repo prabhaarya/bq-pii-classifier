@@ -175,7 +175,7 @@ public class Tagger implements HttpFunction {
         for (TableFieldSchema field : currentFields) {
             if (fieldsToPolicyTagsMap.containsKey(field.getName())) {
 
-                String policyTagId = fieldsToPolicyTagsMap.get(field.getName());
+                String newPolicyTagId = fieldsToPolicyTagsMap.get(field.getName()).trim();
 
                 PolicyTags fieldPolicyTags = field.getPolicyTags();
 
@@ -183,7 +183,7 @@ public class Tagger implements HttpFunction {
                 if (fieldPolicyTags == null) {
 
                     // update the field with policy tag
-                    fieldPolicyTags = new PolicyTags().setNames(Arrays.asList(policyTagId));
+                    fieldPolicyTags = new PolicyTags().setNames(Arrays.asList(newPolicyTagId));
                     field.setPolicyTags(fieldPolicyTags);
 
                     String logMsg = String.format("%s | %s | %s | %s | %s | %s | %s | %s",
@@ -192,44 +192,62 @@ public class Tagger implements HttpFunction {
                             tableId,
                             field.getName(),
                             "",
-                            policyTagId,
+                            newPolicyTagId,
                             "CREATE",
                             ""
                     );
                     policyUpdateLogs.add(Tuple.of(logMsg, Level.INFO));
                 } else {
+                    String existingPolicyTagId = fieldPolicyTags.getNames().get(0).trim();
 
                     // overwrite policy tag if it belongs to the same taxonomy only
-                    String existingTaxonomy = Utils.extractTaxonomyIdFromPolicyTagId(fieldPolicyTags.getNames().get(0));
-                    String newTaxonomy = Utils.extractTaxonomyIdFromPolicyTagId(policyTagId);
+                    String existingTaxonomy = Utils.extractTaxonomyIdFromPolicyTagId(existingPolicyTagId);
+                    String newTaxonomy = Utils.extractTaxonomyIdFromPolicyTagId(newPolicyTagId);
 
                     // update existing tags only if they belong to the same taxonomy
                     if (existingTaxonomy.equals(newTaxonomy)) {
 
-                        // update the field with policy tag
-                        fieldPolicyTags.setNames(Arrays.asList(policyTagId));
+                        if(existingPolicyTagId.equals(newPolicyTagId)){
 
-                        String logMsg = String.format("%s | %s | %s | %s | %s | %s | %s | %s",
-                                projectId,
-                                datasetId,
-                                tableId,
-                                field.getName(),
-                                fieldPolicyTags.getNames().get(0),
-                                policyTagId,
-                                "OVERWRITE",
-                                ""
-                        );
-                        policyUpdateLogs.add(Tuple.of(logMsg, Level.INFO));
+                            // policy tag didn't change
+                            String logMsg = String.format("%s | %s | %s | %s | %s | %s | %s | %s",
+                                    projectId,
+                                    datasetId,
+                                    tableId,
+                                    field.getName(),
+                                    existingPolicyTagId,
+                                    newPolicyTagId,
+                                    "NO_CHANGE",
+                                    "Existing policy tag is the same as newly computed tag."
+                            );
+                            policyUpdateLogs.add(Tuple.of(logMsg, Level.INFO));
 
+                        }else{
+                            // update the field with a new policy tag
+                            fieldPolicyTags.setNames(Arrays.asList(newPolicyTagId));
+
+                            String logMsg = String.format("%s | %s | %s | %s | %s | %s | %s | %s",
+                                    projectId,
+                                    datasetId,
+                                    tableId,
+                                    field.getName(),
+                                    existingPolicyTagId,
+                                    newPolicyTagId,
+                                    "OVERWRITE",
+                                    ""
+                            );
+                            policyUpdateLogs.add(Tuple.of(logMsg, Level.INFO));
+                        }
                     } else {
 
+                        // if new and old taxonomies are different
                         String logMsg = String.format("%s | %s | %s | %s | %s | %s | %s | %s",
                                 projectId,
                                 datasetId,
                                 tableId,
                                 field.getName(),
-                                fieldPolicyTags.getNames().get(0),
-                                policyTagId,
+                                existingPolicyTagId,
+                                newPolicyTagId,
                                 "KEEP_EXISTING",
                                 "Can't overwrite tags that belong to different taxonomies"
                         );

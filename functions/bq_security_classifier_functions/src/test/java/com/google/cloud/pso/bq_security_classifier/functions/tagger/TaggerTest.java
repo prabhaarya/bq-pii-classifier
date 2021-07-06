@@ -83,6 +83,8 @@ public class TaggerTest {
                 Arrays.asList(
                         new TableFieldSchema().setName("email")
                                 .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("auto_taxonomy/email"))),
+                        new TableFieldSchema().setName("phone")
+                                .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("auto_taxonomy/phone"))),
                         new TableFieldSchema().setName("address")
                                 .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("manual_taxonomy/address"))),
                         new TableFieldSchema().setName("non_conf")
@@ -92,12 +94,14 @@ public class TaggerTest {
         // Mock TaggerHelper
         Map<String, String> fieldsToPolicyTagsMap = new HashMap<>();
         fieldsToPolicyTagsMap.put("email", "auto_taxonomy/email_new");
+        fieldsToPolicyTagsMap.put("phone", "auto_taxonomy/phone");
         fieldsToPolicyTagsMap.put("address", "auto_taxonomy/address");
         when(taggerHelper.getFieldsToPolicyTagsMap(any(), any(), any(), any())).thenReturn(fieldsToPolicyTagsMap);
 
 
         Map<String, String> expectedFieldsAndPolicyTags = new HashMap<>();
         expectedFieldsAndPolicyTags.put("email", "auto_taxonomy/email_new"); // overwrite same taxonomy
+        expectedFieldsAndPolicyTags.put("phone", "auto_taxonomy/phone"); // overwrite same taxonomy
         expectedFieldsAndPolicyTags.put("address", "manual_taxonomy/address"); // keep diff taxonomy
         expectedFieldsAndPolicyTags.put("non_conf", ""); // no tags
 
