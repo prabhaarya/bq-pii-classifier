@@ -77,7 +77,7 @@ variable "projects_include_list" {}
 variable "datasets_exclude_list" {}
 variable "tables_exclude_list" {}
 
-variable "taxonomy_name" {default = "bq_security_classifier"}
+variable "taxonomy_name" {default = "confidential"}
 
 # for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
 # generated policy_tag_id

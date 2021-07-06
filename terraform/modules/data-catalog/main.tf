@@ -3,38 +3,16 @@
 
 ### Create Taxonomy  ###
 
-resource "google_data_catalog_taxonomy" "taxonomy" {
+resource "google_data_catalog_taxonomy" "project_taxonomy" {
+  count = length(var.taxonomy_parents)
   provider = google-beta
   project = var.project
   region = var.region
-  display_name = var.taxonomy_name
-  description = "A collection of policy tags assigned by BQ security classifier"
+  display_name = "${var.taxonomy_name}_${var.taxonomy_parents[count.index]}"
+  description = "A collection of policy tags assigned by BQ security classifier for project '${var.taxonomy_parents[count.index]}'"
   activated_policy_types = [
     "FINE_GRAINED_ACCESS_CONTROL"]
 }
-
-### Create Root Confidential ###
-
-resource "google_data_catalog_policy_tag" "root_confidential" {
-  provider = google-beta
-  taxonomy = google_data_catalog_taxonomy.taxonomy.id
-  display_name = "confidential"
-  description = "A policy tag category used for high security access"
-}
-
-
-### Create Parents  ###
-
-resource "google_data_catalog_policy_tag" "parents" {
-  count = length(var.taxonomy_parents)
-  provider = google-beta
-  taxonomy = google_data_catalog_taxonomy.taxonomy.id
-  display_name = "confidential_${var.taxonomy_parents[count.index]}"
-  description = "${var.taxonomy_parents[count.index]} project confidential access"
-  parent_policy_tag = google_data_catalog_policy_tag.root_confidential.id
-}
-
-### Create Children  ###
 
 # flatten projects and policy tag children to create the same policy tags for each project
 locals {
@@ -49,20 +27,14 @@ locals {
   ])
 }
 
-resource "google_data_catalog_policy_tag" "children" {
+resource "google_data_catalog_policy_tag" "project_tags" {
   count = length(local.child-tags-list)
   provider = google-beta
-  taxonomy = google_data_catalog_taxonomy.taxonomy.id
-  display_name = "${lookup(local.child-tags-list[count.index],"policy_tag","NA")}_${lookup(local.child-tags-list[count.index],"project","NA")}"
+  taxonomy = google_data_catalog_taxonomy.project_taxonomy[floor(count.index/length(var.taxonomy_children))].id
+  display_name = lookup(local.child-tags-list[count.index],"policy_tag","NA")
   # FIXME: this is a hack to propagate the project and infotype to the output variable "created_policy_tags". Find an alternative
   description = "${lookup(local.child-tags-list[count.index],"project","NA")} | ${lookup(local.child-tags-list[count.index],"info_type","NA")}"
-
-  # formula: e.g. given 3 projects and 2 infotypes this leads to 6 children with index mapped to children:(0,1,2) -> parent:1 , children:(3,4,5) -> parent:2
-  parent_policy_tag = google_data_catalog_policy_tag.parents[floor(count.index/length(var.taxonomy_children))].id
 }
-
-
-
 
 
 
