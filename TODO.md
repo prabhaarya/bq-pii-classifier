@@ -34,7 +34,7 @@ Every section has its own priority list
 
 # Infra automation
 - [x] Terraform everything
-- [ ] Queues config
+- [x] Queues config
 
 # Improvements should-do
 - [x] check if multi-location is required and implement it (not required now)

@@ -143,3 +143,16 @@ Fine-Grained Reader (to inspect BQ columns with column-access enables)
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member="service-458743432870@dlp-api.iam.gserviceaccount.com" \
     --role="roles/datacatalog.categoryFineGrainedReader"
+    
+
+# rate limiting
+Inspector
+- DLP: 600 requests per min --> DISPATCH_RATE = 10 (per sec)
+- DLP: 1000 running jobs --> handle via retries since creating jobs is async
+Tagger
+Maximum rate of dataset metadata update operations (including patch) 
+ — 5 operations every 10 seconds per dataset --> DISPATCH_RATE = 1 (per sec)
+ (pessimistic setting assuming 1 dataset)(rely on retries as fallback)
+ 
+ DISPATCH_RATE is actually the rate at which tokens in the bucket are refreshed. In conditions where there is a relatively steady flow of tasks, this is the equivalent of the rate at which tasks are dispatched.
+ MAX_RUNNING is the maximum number of tasks in the queue that can run at once.
