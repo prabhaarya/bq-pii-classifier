@@ -58,13 +58,13 @@ gcloud builds submit --gcs-source-staging-dir="$BUCKET/cloud-build/"
 
 # dlp service account setting
 
-service-458743432870@dlp-api.iam.gserviceaccount.com
+service-xyz@dlp-api.iam.gserviceaccount.com
 must have 
 Fine-Grained Reader (to inspect BQ columns with column-access enables)
 
 
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member="service-458743432870@dlp-api.iam.gserviceaccount.com" \
+    --member="service-xyz@dlp-api.iam.gserviceaccount.com" \
     --role="roles/datacatalog.categoryFineGrainedReader"
 
 
