@@ -47,9 +47,9 @@ public class TaggerHelper {
         // Construct a mapping between field names and DLP infotypes
         Map<String, String> fieldsToPolicyTagMap = new HashMap<>();
         for (FieldValueList row : result.iterateAll()) {
-            String fieldName = row.get("field_name").getStringValue();
-            String infoTypeName = row.get("policy_tag").getStringValue();
-            fieldsToPolicyTagMap.put(fieldName, infoTypeName);
+                String fieldName = row.get("field_name").isNull()? "" : row.get("field_name").getStringValue();
+                String infoTypeName = row.get("policy_tag").isNull()? "": row.get("policy_tag").getStringValue();
+                fieldsToPolicyTagMap.put(fieldName, infoTypeName);
         }
 
         return fieldsToPolicyTagMap;

@@ -114,6 +114,12 @@ public class Tagger implements HttpFunction {
                     environment.getBqViewFieldsFindings(),
                     options.getDlpJobName());
 
+            // check if any policy tag id is empty
+            if(fieldsToPolicyTagsMap.values().stream().anyMatch(String::isBlank)){
+                String msg = String.format("Computed Fields to Policy Tags mapping contains empty policy tag ids. Computed mapping is %s", fieldsToPolicyTagsMap.toString());
+                throw new RuntimeException(msg);
+            }
+
             logger.logInfoWithTracker(trackingId, String.format("Computed Fields to Policy Tags mapping : %s", fieldsToPolicyTagsMap.toString()));
 
             // Apply policy tags to columns in BigQuery
