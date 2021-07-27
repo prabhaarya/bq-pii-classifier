@@ -1,4 +1,5 @@
 variable "project" {}
+variable "region" {}
 variable "scheduler_name" {}
 variable "target_uri" {}
 variable "service_account_email" {}

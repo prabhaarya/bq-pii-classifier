@@ -4,7 +4,7 @@ variable "project" {
 variable "region" {
 }
 
-variable "dlp_results_dataset_name" {
+variable "dataset" {
 
 }
 
@@ -18,3 +18,7 @@ variable "logging_sink_sa" {
 
 
 variable "created_policy_tags" {}
+
+variable "projects_domains_mapping" {}
+
+variable "dataset_domains_mapping" {}

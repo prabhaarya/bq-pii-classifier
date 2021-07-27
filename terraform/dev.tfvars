@@ -14,7 +14,7 @@
 
 project = "facilities-910444929556"
 region = "europe-west2"
-dlp_results_dataset_name = "bq_security_classifier_4"
+bigquery_dataset_name = "bq_security_classifier_4"
 dlp_results_table_name = "results"
 tagger_queue = "tf-tagger-queue-3"
 inspector_queue = "tf-inspector-queue-3"
@@ -28,13 +28,9 @@ projects_include_list = "facilities-910444929556, zbooks-910444929556"
 datasets_exclude_list = "facilities-910444929556.bq_security_classifier_4"
 tables_exclude_list = ""
 
-target_projects = [
-  "facilities-910444929556",
-  "zbooks-910444929556"
-]
-
 # for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
 # generated policy_tag_id
+# INFO_TYPEs configured in the DLP inspection job MUST be mapped here. Otherwise, mapping to policy tag ids will fail
 infoTypeName_policyTagName_map = [
   {
     info_type = "EMAIL_ADDRESS",
@@ -90,7 +86,26 @@ infoTypeName_policyTagName_map = [
   }
 ]
 
-
+domain_mapping = [
+  {
+    project = "zbooks-910444929556",
+    domain = "marketing"
+  },
+  {
+    project = "facilities-910444929556",
+    domain = "dwh",
+    datasets = [
+      {
+        name = "ds_domain_marketing",
+        domain = "marketing"
+      },
+      {
+        name = "ds_domain_finance",
+        domain = "finance"
+      }
+    ]
+  }
+]
 
 
 

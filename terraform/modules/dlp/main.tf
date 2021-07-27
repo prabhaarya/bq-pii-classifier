@@ -5,6 +5,9 @@ resource "google_data_loss_prevention_inspect_template" "inspection_template" {
   description = "DLP Inspection template used by the BQ security classifier app"
   display_name = "bq_security_classifier_inspection_template"
 
+  # Info Types configured here must be mapped in the infoTypeName_policyTagName_map variable
+  # passed to the main module, otherwise mapping to policy tags will fail.
+
   inspect_config {
 
     ### STANDARD INFOTYPES

@@ -14,7 +14,90 @@
 
 provider "google" {
   project = var.project
-  region  = var.region
+  region = var.region
+}
+
+# Enable APIS
+
+resource "google_project_service" "enable_service_usage_api" {
+  project = var.project
+  service = "serviceusage.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+resource "google_project_service" "enable_cloud_functions" {
+  project = var.project
+  service = "cloudfunctions.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+# Enable Cloud Build API
+resource "google_project_service" "enable_cloud_build" {
+  project = var.project
+  service = "cloudbuild.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+# Enable Cloud Scheduler API
+resource "google_project_service" "enable_appengine" {
+  project = var.project
+  service = "appengine.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+# Enable Cloud Scheduler API
+resource "google_project_service" "enable_cloud_scheduler" {
+  project = var.project
+  service = "cloudscheduler.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+locals {
+
+  project_and_domains = distinct([
+  for entry in var.domain_mapping : {
+    project = lookup(entry, "project"),
+    domain = lookup(entry, "domain")
+  }
+  ])
+
+  # Only projects with configured domains
+  project_and_domains_filtered = [for entry in local.project_and_domains: entry if lookup(entry, "domain") != ""]
+
+  datasets_and_domains = distinct(flatten([
+  for entry in var.domain_mapping : [
+  for dataset in lookup(entry, "datasets", []) : {
+    project = lookup(entry, "project"),
+    dataset = lookup(dataset, "name"),
+    domain = lookup(dataset, "domain")
+  }
+  ]]))
+
+  # Only datasets with configured domains
+  datasets_and_domains_filtered = [for entry in local.datasets_and_domains: entry if lookup(entry, "domain") != ""]
+
+  # Get distinct domains set on project entries
+  project_domains = distinct([
+  for entry in local.project_and_domains_filtered : lookup(entry, "domain")
+  ])
+
+  # Get distinct domains set on dataset level
+  dataset_domains = distinct([
+  for entry in local.datasets_and_domains_filtered : lookup(entry, "domain")
+  ])
+
+  // Concat project and dataset domains and filter out empty strings
+  domains = distinct(concat(local.project_domains, local.dataset_domains))
 }
 
 module "data-catalog" {
@@ -22,14 +105,14 @@ module "data-catalog" {
   project = var.project
   region = var.region
   taxonomy_name = var.taxonomy_name
-  taxonomy_parents = var.target_projects
+  taxonomy_parents = local.domains
   taxonomy_children = var.infoTypeName_policyTagName_map
 }
 
 module "cloud_logging" {
   source = "./modules/cloud-logging"
 
-  dataset = var.dlp_results_dataset_name
+  dataset = var.bigquery_dataset_name
   project = var.project
 }
 
@@ -37,12 +120,14 @@ module "bigquery" {
   source = "./modules/bigquery"
   project = var.project
   region = var.region
-  dlp_results_dataset_name = var.dlp_results_dataset_name
+  dataset = var.bigquery_dataset_name
   dlp_results_table_name = var.dlp_results_table_name
   logging_sink_sa = module.cloud_logging.service_account
 
-  # infoType-Policytag mapping
+  # Data for config views
   created_policy_tags = module.data-catalog.created_policy_tags
+  dataset_domains_mapping = local.datasets_and_domains_filtered
+  projects_domains_mapping = local.project_and_domains_filtered
 }
 
 module "cloud_tasks" {
@@ -51,6 +136,8 @@ module "cloud_tasks" {
   region = var.region
   inspector_queue = var.inspector_queue
   tagger_queue = var.tagger_queue
+
+  depends_on = [google_project_service.enable_appengine]
 }
 
 module "iam" {
@@ -69,6 +156,7 @@ module "iam" {
 module "cloud_scheduler" {
   source = "./modules/cloud-scheduler"
   project = var.project
+  region = var.region
   scheduler_name = var.scheduler_name
   target_uri = module.cloud_functions.dispatcher_url
   service_account_email = module.iam.sa_scheduler_email
@@ -78,6 +166,8 @@ module "cloud_scheduler" {
   projects_include_list = var.projects_include_list
   datasets_exclude_list = var.datasets_exclude_list
   tables_exclude_list = var.tables_exclude_list
+
+  depends_on = [google_project_service.enable_appengine]
 }
 
 module "pubsub" {
@@ -102,17 +192,19 @@ module "cloud_functions" {
   cf_inspector = var.cf_inspector
   cf_listener = var.cf_listener
   cf_tagger = var.cf_tagger
-  bq_results_dataset = var.dlp_results_dataset_name
+  bq_results_dataset = var.bigquery_dataset_name
   bq_results_table = var.dlp_results_table_name
   inspector_queue_name = var.inspector_queue
   tagger_queue_name = var.tagger_queue
-  dlp_inspection_template_id = module.dlp.template_id
+  dlp_inspection_template_id = "dummy-template" #module.dlp.template_id
   bq_view_dlp_fields_findings = module.bigquery.bq_view_dlp_fields_findings
+  depends_on = [google_project_service.enable_cloud_functions, google_project_service.enable_cloud_build]
 }
 
-module "dlp" {
-  source = "./modules/dlp"
-  project = var.project
-  region = var.region
-}
+//module "dlp" {
+//  source = "./modules/dlp"
+//  project = var.project
+//  region = var.region
+//}
+
 

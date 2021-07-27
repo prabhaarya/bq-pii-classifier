@@ -3,25 +3,6 @@
 # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloudfunctions_function
 
 
-
-# Enable Cloud Functions API
-resource "google_project_service" "cf" {
-  project = var.project
-  service = "cloudfunctions.googleapis.com"
-
-  disable_dependent_services = true
-  disable_on_destroy         = false
-}
-
-# Enable Cloud Build API
-resource "google_project_service" "cb" {
-  project = var.project
-  service = "cloudbuild.googleapis.com"
-
-  disable_dependent_services = true
-  disable_on_destroy         = false
-}
-
 locals {
   timestamp = formatdate("YYMMDDhhmmss", timestamp())
   functions_dir = abspath("../functions/bq_security_classifier_functions/")
@@ -39,6 +20,8 @@ data "archive_file" "source" {
 # Create bucket that will host the source code
 resource "google_storage_bucket" "source_bucket" {
   name = "${var.project}-functions-source"
+  location = var.region
+  uniform_bucket_level_access = true
 }
 
 # Add source code zip to bucket

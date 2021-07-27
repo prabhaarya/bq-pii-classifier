@@ -16,7 +16,7 @@ variable "project" {}
 
 variable "region" {}
 
-variable "dlp_results_dataset_name" {
+variable "bigquery_dataset_name" {
   default = "bq_security_classifier"
 }
 
@@ -52,21 +52,33 @@ variable "sa_inspector_tasks" {
   default = "tf-sa-inspector-tasks"
 }
 
-variable "sa_tagger_tasks"{
+variable "sa_tagger_tasks" {
   default = "tf-sa-tagger-tasks"
 }
 
-variable "scheduler_name" {default = "tf-scheduler"}
-variable "sa_scheduler" {default = "tf-sa-scheduler"}
+variable "scheduler_name" {
+  default = "tf-scheduler"
+}
+variable "sa_scheduler" {
+  default = "tf-sa-scheduler"
+}
 
-variable "dlp_notifications_topic"{
+variable "dlp_notifications_topic" {
   default = "tf-dlp-notifications"
 }
 
-variable "cf_dispatcher" { default = "tf-dispatcher"}
-variable "cf_inspector" { default = "tf-inspector"}
-variable "cf_listener" { default = "tf-listener"}
-variable "cf_tagger" { default = "tf-tagger"}
+variable "cf_dispatcher" {
+  default = "tf-dispatcher"
+}
+variable "cf_inspector" {
+  default = "tf-inspector"
+}
+variable "cf_listener" {
+  default = "tf-listener"
+}
+variable "cf_tagger" {
+  default = "tf-tagger"
+}
 
 # DLP scanning scope
 # Optional fields. At least one should be provided among the _INCLUDE configs
@@ -77,19 +89,30 @@ variable "projects_include_list" {}
 variable "datasets_exclude_list" {}
 variable "tables_exclude_list" {}
 
-variable "taxonomy_name" {default = "confidential"}
+variable "taxonomy_name" {
+  default = "confidential"
+}
 
 # for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
 # generated policy_tag_id
 variable "infoTypeName_policyTagName_map" {
   default = [
-    {info_type = "EMAIL_ADDRESS", policy_tag = "email"},
-    {info_type = "PHONE_NUMBER", policy_tag = "phone"},
-    {info_type = "ADDRESS", policy_tag = "address"}
+    {
+      info_type = "EMAIL_ADDRESS",
+      policy_tag = "email"
+    },
+    {
+      info_type = "PHONE_NUMBER",
+      policy_tag = "phone"
+    },
+    {
+      info_type = "ADDRESS",
+      policy_tag = "address"
+    }
   ]
 }
 
-variable "target_projects" {}
+variable "domain_mapping" {}
 
 
 
