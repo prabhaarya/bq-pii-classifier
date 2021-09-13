@@ -124,6 +124,7 @@ public class Inspector implements HttpFunction {
                 .setTableReference(bqTable)
                 .setSampleMethod(BigQueryOptions.SampleMethod.forNumber(samplingMethod))
                 .setRowsLimitPercent(rowsLimitPercent)
+                .setRowsLimit(rowsLimitPercent)
                 .build();
 
         StorageConfig storageConfig =

@@ -12,20 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-project = "facilities-910444929556"
+project = "bqsc-host"
 region = "europe-west2"
-bigquery_dataset_name = "bq_security_classifier_4"
-dlp_results_table_name = "results"
-tagger_queue = "tf-tagger-queue-3"
-inspector_queue = "tf-inspector-queue-3"
+bigquery_dataset_name = "bq_security_classifier"
+dlp_results_table_name = "dlp_results"
+tagger_queue = "tagger-queue"
+inspector_queue = "inspector-queue"
 
 # DLP scanning scope
 # Optional fields. At least one should be provided among the _INCLUDE configs
 # format: project.dataset.table1, project.dataset.table2, etc
 tables_include_list = ""
 datasets_include_list = ""
-projects_include_list = "facilities-910444929556, zbooks-910444929556"
-datasets_exclude_list = "facilities-910444929556.bq_security_classifier_4"
+projects_include_list = "bqsc-marketing, bqsc-finance, bqsc-dwh"
+datasets_exclude_list = ""
 tables_exclude_list = ""
 
 # for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
@@ -88,24 +88,36 @@ infoTypeName_policyTagName_map = [
 
 domain_mapping = [
   {
-    project = "zbooks-910444929556",
+    project = "bqsc-marketing",
     domain = "marketing"
   },
   {
-    project = "facilities-910444929556",
+    project = "bqsc-finance",
+    domain = "finance"
+  },
+  {
+    project = "bqsc-dwh",
     domain = "dwh",
     datasets = [
       {
-        name = "ds_domain_marketing",
+        name = "marketing",
         domain = "marketing"
       },
       {
-        name = "ds_domain_finance",
+        name = "finance",
         domain = "finance"
       }
     ]
   }
 ]
+
+domain_iam_mapping = {
+  marketing = ["group:marketing-private-readers@wadie.joonix.net"],
+  finance = ["group:finance-private-readers@wadie.joonix.net"],
+  dwh = ["group:dwh-private-readers@wadie.joonix.net"],
+}
+
+dlp_service_account = "service-414082511776@dlp-api.iam.gserviceaccount.com"
 
 
 

@@ -18,3 +18,4 @@ variable "bq_results_dataset" {}
 variable "bq_results_table" {}
 variable "dlp_inspection_template_id" {}
 variable "bq_view_dlp_fields_findings" {}
+variable "taxonomies" {}

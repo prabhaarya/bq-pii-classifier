@@ -150,6 +150,7 @@ resource "google_cloudfunctions_function" "function_tagger" {
     DATASET_ID = var.bq_results_dataset
     BQ_VIEW_FIELDS_FINDINGS = var.bq_view_dlp_fields_findings
     DLP_RESULTS_TABLE = var.bq_results_table
+    TAXONOMIES = var.taxonomies
   }
 }
 

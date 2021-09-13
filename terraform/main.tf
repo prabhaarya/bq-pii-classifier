@@ -17,6 +17,11 @@ provider "google" {
   region = var.region
 }
 
+provider "google-beta" {
+  project = var.project
+  region = var.region
+}
+
 # Enable APIS
 
 resource "google_project_service" "enable_service_usage_api" {
@@ -98,13 +103,14 @@ locals {
 
   // Concat project and dataset domains and filter out empty strings
   domains = distinct(concat(local.project_domains, local.dataset_domains))
+
+  taxonomies = join(",", [for taxonomy in module.data-catalog.created_taxonomies: taxonomy.name])
 }
 
 module "data-catalog" {
   source = "./modules/data-catalog"
   project = var.project
   region = var.region
-  taxonomy_name = var.taxonomy_name
   taxonomy_parents = local.domains
   taxonomy_children = var.infoTypeName_policyTagName_map
 }
@@ -151,6 +157,9 @@ module "iam" {
   sa_inspector_tasks = var.sa_inspector_tasks
   sa_tagger_tasks = var.sa_tagger_tasks
   sa_scheduler = var.sa_scheduler
+  taxonomies = module.data-catalog.created_taxonomies
+  domain_iam_mapping = var.domain_iam_mapping
+  dlp_service_account = var.dlp_service_account
 }
 
 module "cloud_scheduler" {
@@ -196,15 +205,15 @@ module "cloud_functions" {
   bq_results_table = var.dlp_results_table_name
   inspector_queue_name = var.inspector_queue
   tagger_queue_name = var.tagger_queue
-  dlp_inspection_template_id = "dummy-template" #module.dlp.template_id
+  dlp_inspection_template_id = module.dlp.template_id
   bq_view_dlp_fields_findings = module.bigquery.bq_view_dlp_fields_findings
-  depends_on = [google_project_service.enable_cloud_functions, google_project_service.enable_cloud_build]
+  taxonomies = local.taxonomies
 }
 
-//module "dlp" {
-//  source = "./modules/dlp"
-//  project = var.project
-//  region = var.region
-//}
+module "dlp" {
+  source = "./modules/dlp"
+  project = var.project
+  region = var.region
+}
 
 

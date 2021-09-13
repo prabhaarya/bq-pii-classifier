@@ -23,11 +23,11 @@ Every section has its own priority list
 - [x] Debug null pointer expetion in Tagger for R-1626966476328-T-facilities-910444929556-ds_domain_marketing-customers
 - [x] Fix the logic of broken steps: broken means no 'END' for 3 functions
 - [x] Implement fallback for PII without configured taxonomy - (in configo n project level)
-- [] Implement IAM binding on taxonomies
+- [x] Implement IAM binding on taxonomies
 - [] allow policy tag overwrite between all taxonomies created by the solution (all domains)
 - [] Deploy to VM POC env
-- [] Add gaurd rails in the SQL to avoid join explosion on misconfugrations
 - [ ] Demo to VM
+- [ ] limit terraform sa role instead of using roles/owner
 
 # Logging & Reporting
 - [x] apply structured logging to all functions

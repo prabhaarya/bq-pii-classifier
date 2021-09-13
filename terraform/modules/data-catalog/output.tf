@@ -7,3 +7,7 @@ output "created_policy_tags" {
   }]
 }
 
+output "created_taxonomies" {
+  value = google_data_catalog_taxonomy.domain_taxonomy
+}
+

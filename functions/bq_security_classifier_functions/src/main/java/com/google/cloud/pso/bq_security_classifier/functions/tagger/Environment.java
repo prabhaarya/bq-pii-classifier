@@ -12,12 +12,12 @@ public class Environment {
         return Utils.getConfigFromEnv("DATASET_ID", true);
     }
 
-    public String getDlpResultsTable(){
-        return Utils.getConfigFromEnv("DLP_RESULTS_TABLE", true);
-    }
-
     public String getBqViewFieldsFindings(){
         return Utils.getConfigFromEnv("BQ_VIEW_FIELDS_FINDINGS", true);
+    }
+
+    public String getTaxonomies(){
+        return Utils.getConfigFromEnv("TAXONOMIES", true);
     }
 
 }

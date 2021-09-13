@@ -19,3 +19,7 @@ output "sa_tagger_tasks_email" {
 output "sa_scheduler_email" {
   value = google_service_account.sa_scheduler.email
 }
+
+output "debug_taxonomy_reader" {
+  value = google_data_catalog_taxonomy_iam_member.taxonomy_reader
+}

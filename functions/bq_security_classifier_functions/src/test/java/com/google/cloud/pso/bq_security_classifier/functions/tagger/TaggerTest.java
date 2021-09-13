@@ -20,10 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -76,15 +73,16 @@ public class TaggerTest {
 //        when(envMock.getDatasetId()).thenReturn("resultsDataset");
 //        when(envMock.getDlpResultsTable()).thenReturn("resultsTable");
 //        when(envMock.getBqViewFieldsFindings()).thenReturn("bqView");
+          when(envMock.getTaxonomies()).thenReturn("auto_taxonomy_1, auto_taxonomy_2");
 
         // Mock Bq service
         when(bigQueryServiceMock.getTableSchemaFields("targetProject", "targetDataset", "targetTable"))
                 .thenReturn(
                 Arrays.asList(
                         new TableFieldSchema().setName("email")
-                                .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("auto_taxonomy/email"))),
+                                .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("auto_taxonomy_1/email"))),
                         new TableFieldSchema().setName("phone")
-                                .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("auto_taxonomy/phone"))),
+                                .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("auto_taxonomy_1/phone"))),
                         new TableFieldSchema().setName("address")
                                 .setPolicyTags(new TableFieldSchema.PolicyTags().setNames(Arrays.asList("manual_taxonomy/address"))),
                         new TableFieldSchema().setName("non_conf")
@@ -93,16 +91,16 @@ public class TaggerTest {
 
         // Mock TaggerHelper
         Map<String, String> fieldsToPolicyTagsMap = new HashMap<>();
-        fieldsToPolicyTagsMap.put("email", "auto_taxonomy/email_new");
-        fieldsToPolicyTagsMap.put("phone", "auto_taxonomy/phone");
-        fieldsToPolicyTagsMap.put("address", "auto_taxonomy/address");
+        fieldsToPolicyTagsMap.put("email", "auto_taxonomy_2/email_new");
+        fieldsToPolicyTagsMap.put("phone", "auto_taxonomy_1/phone");
+        fieldsToPolicyTagsMap.put("address", "auto_taxonomy_1/address");
         when(taggerHelper.getFieldsToPolicyTagsMap(any(), any(), any(), any())).thenReturn(fieldsToPolicyTagsMap);
 
 
         Map<String, String> expectedFieldsAndPolicyTags = new HashMap<>();
-        expectedFieldsAndPolicyTags.put("email", "auto_taxonomy/email_new"); // overwrite same taxonomy
-        expectedFieldsAndPolicyTags.put("phone", "auto_taxonomy/phone"); // overwrite same taxonomy
-        expectedFieldsAndPolicyTags.put("address", "manual_taxonomy/address"); // keep diff taxonomy
+        expectedFieldsAndPolicyTags.put("email", "auto_taxonomy_2/email_new"); // overwrite when belongs to app-managed taxonomies
+        expectedFieldsAndPolicyTags.put("phone", "auto_taxonomy_1/phone"); // overwrite when belongs to app-managed taxonomies
+        expectedFieldsAndPolicyTags.put("address", "manual_taxonomy/address"); // keep non app-managed taxonomies
         expectedFieldsAndPolicyTags.put("non_conf", ""); // no tags
 
         function.service(requestMock, responseMock);

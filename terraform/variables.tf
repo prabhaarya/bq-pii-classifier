@@ -21,63 +21,63 @@ variable "bigquery_dataset_name" {
 }
 
 variable "dlp_results_table_name" {
-  default = "results"
+  default = "dlp_results"
 }
 
 variable "tagger_queue" {
-  default = "tf-tagger-queue"
+  default = "sc-tagger-queue"
 }
 
 variable "inspector_queue" {
-  default = "tf-inspector-queue"
+  default = "sc-inspector-queue"
 }
 
 variable "sa_dispatcher" {
-  default = "tf-sa-dispatcher"
+  default = "sa-sc-dispatcher"
 }
 
 variable "sa_inspector" {
-  default = "tf-sa-inspector"
+  default = "sa-sc-inspector"
 }
 
 variable "sa_listener" {
-  default = "tf-sa-listener"
+  default = "sa-sc-listener"
 }
 
 variable "sa_tagger" {
-  default = "tf-sa-tagger"
+  default = "sa-sc-tagger"
 }
 
 variable "sa_inspector_tasks" {
-  default = "tf-sa-inspector-tasks"
+  default = "sa-sc-inspector-tasks"
 }
 
 variable "sa_tagger_tasks" {
-  default = "tf-sa-tagger-tasks"
+  default = "sa-sc-tagger-tasks"
 }
 
 variable "scheduler_name" {
-  default = "tf-scheduler"
+  default = "sc-scheduler"
 }
 variable "sa_scheduler" {
-  default = "tf-sa-scheduler"
+  default = "sa-sc-scheduler"
 }
 
 variable "dlp_notifications_topic" {
-  default = "tf-dlp-notifications"
+  default = "sc-dlp-notifications"
 }
 
 variable "cf_dispatcher" {
-  default = "tf-dispatcher"
+  default = "sc-dispatcher"
 }
 variable "cf_inspector" {
-  default = "tf-inspector"
+  default = "sc-inspector"
 }
 variable "cf_listener" {
-  default = "tf-listener"
+  default = "sc-listener"
 }
 variable "cf_tagger" {
-  default = "tf-tagger"
+  default = "sc-tagger"
 }
 
 # DLP scanning scope
@@ -89,30 +89,57 @@ variable "projects_include_list" {}
 variable "datasets_exclude_list" {}
 variable "tables_exclude_list" {}
 
-variable "taxonomy_name" {
-  default = "confidential"
-}
-
 # for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
 # generated policy_tag_id
-variable "infoTypeName_policyTagName_map" {
-  default = [
-    {
-      info_type = "EMAIL_ADDRESS",
-      policy_tag = "email"
-    },
-    {
-      info_type = "PHONE_NUMBER",
-      policy_tag = "phone"
-    },
-    {
-      info_type = "ADDRESS",
-      policy_tag = "address"
-    }
-  ]
-}
+variable "infoTypeName_policyTagName_map" {}
+//Example:
+//infoTypeName_policyTagName_map = [
+//  {
+//    info_type = "EMAIL_ADDRESS",
+//    policy_tag = "email"
+//  },
+//  {
+//    info_type = "PHONE_NUMBER",
+//    policy_tag = "phone"
+//  }
+//  ]
 
-variable "domain_mapping" {}
+variable "domain_mapping" {
+  description = "Mapping between domains and GCP projects or BQ Datasets. Dataset-level mapping will overwrite project-level mapping for a given project."
+}
+// Example:
+//domain_mapping = [
+//  {
+//    project = "marketing-project",
+//    domain = "marketing"
+//  },
+//  {
+//    project = "dwh-project",
+//    domain = "dwh",
+//    datasets = [
+//      {
+//        name = "marketing_dataset",
+//        domain = "marketing"
+//      },
+//      {
+//        name = "finance_dataset",
+//        domain = "finance"
+//      }
+//    ]
+//  }
+//]
+
+
+variable "domain_iam_mapping" {
+  description = "Mapping for domains and IAM members to grant required permissions to read sensitive BQ columns belonging to that domain"
+}
+//Example:
+//domain_iam_mapping = {
+//  domain1 = ["group:groupname@example.com", "user:username@example.com"],
+//  domain2 = ["serviceAccount:sa@example.com"],
+//}
+
+variable "dlp_service_account" {}
 
 
 

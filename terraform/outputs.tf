@@ -9,3 +9,11 @@
 //output "datasets_and_domains_filtered" {value = local.datasets_and_domains_filtered}
 //output "project_and_domains_filtered" {value = local.project_and_domains_filtered}
 //output "domains" {value = local.domains}
+
+output "debug_taxonomy_reader" {
+  value = module.iam.debug_taxonomy_reader
+}
+
+output "debug_taxonomies" {
+  value = local.taxonomies
+}

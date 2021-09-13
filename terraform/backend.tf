@@ -14,7 +14,7 @@
 
 terraform {
   backend "gcs" {
-    bucket = "terraform-bq-security-classifier"
+    bucket = "bqsc-host-bq-security-classifier"
     prefix = "terraform-state"
   }
 }

@@ -128,6 +128,7 @@ public class Tagger implements HttpFunction {
                     inspectedTable.getDatasetId(),
                     inspectedTable.getTableId(),
                     fieldsToPolicyTagsMap,
+                    new HashSet(Utils.tokenize(environment.getTaxonomies(), ",", true)),
                     trackingId);
 
             // used in unit testing
@@ -170,6 +171,7 @@ public class Tagger implements HttpFunction {
                                                   String datasetId,
                                                   String tableId,
                                                   Map<String, String> fieldsToPolicyTagsMap,
+                                                  Set<String> app_managed_taxonomies,
                                                   String trackingId) throws IOException {
 
         List<TableFieldSchema> currentFields = bqService.getTableSchemaFields(projectId, datasetId, tableId);
@@ -210,8 +212,9 @@ public class Tagger implements HttpFunction {
                     String existingTaxonomy = Utils.extractTaxonomyIdFromPolicyTagId(existingPolicyTagId);
                     String newTaxonomy = Utils.extractTaxonomyIdFromPolicyTagId(newPolicyTagId);
 
-                    // update existing tags only if they belong to the same taxonomy
-                    if (existingTaxonomy.equals(newTaxonomy)) {
+                    // update existing tags only if they belong to the security classifier application.
+                    // Don't overwrite manually created taxonomies
+                    if (app_managed_taxonomies.contains(existingTaxonomy)) {
 
                         if(existingPolicyTagId.equals(newPolicyTagId)){
 
@@ -246,7 +249,7 @@ public class Tagger implements HttpFunction {
                         }
                     } else {
 
-                        // if new and old taxonomies are different
+                        // if new taxonomy doesn't belong to the BQ security classifier app (e.g. manually created)
                         String logMsg = String.format("%s | %s | %s | %s | %s | %s | %s | %s",
                                 projectId,
                                 datasetId,
@@ -255,7 +258,7 @@ public class Tagger implements HttpFunction {
                                 existingPolicyTagId,
                                 newPolicyTagId,
                                 "KEEP_EXISTING",
-                                "Can't overwrite tags that belong to different taxonomies"
+                                "Can't overwrite tags that are not crated/managed by the application. The existing taxonomy is created by another app/user"
                         );
                         policyUpdateLogs.add(Tuple.of(logMsg, Level.WARNING));
                     }
