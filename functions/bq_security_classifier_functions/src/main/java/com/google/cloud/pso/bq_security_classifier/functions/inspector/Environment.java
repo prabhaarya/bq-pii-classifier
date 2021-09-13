@@ -36,8 +36,8 @@ public class Environment {
         return Utils.getConfigFromEnv("SAMPLING_METHOD", true);
     }
 
-    public String getRowsLimitPercent(){
-        return Utils.getConfigFromEnv("ROWS_LIMIT_PERCENT", true);
+    public String getRowsLimit(){
+        return Utils.getConfigFromEnv("ROWS_LIMIT", true);
     }
 
     public String getDlpInspectionTemplateId(){

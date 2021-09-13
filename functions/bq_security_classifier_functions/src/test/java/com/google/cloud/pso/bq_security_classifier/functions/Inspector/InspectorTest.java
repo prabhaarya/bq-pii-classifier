@@ -6,7 +6,6 @@ package com.google.cloud.pso.bq_security_classifier.functions.Inspector;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -68,7 +67,7 @@ public class InspectorTest {
         when(envMock.getMinLikelihood()).thenReturn("LIKELY");
         when(envMock.getMaxFindings()).thenReturn("50");
         when(envMock.getSamplingMethod()).thenReturn("2");
-        when(envMock.getRowsLimitPercent()).thenReturn("10");
+        when(envMock.getRowsLimit()).thenReturn("10");
         when(envMock.getDlpInspectionTemplateId()).thenReturn("dlpTemplate");
 
         // expected output
@@ -92,7 +91,7 @@ public class InspectorTest {
         assertEquals("targetDataset", targetTable.getTableReference().getDatasetId());
         assertEquals("targetTable", targetTable.getTableReference().getTableId());
         assertEquals(2, targetTable.getSampleMethodValue());
-        assertEquals(10, targetTable.getRowsLimitPercent());
+        assertEquals(10, targetTable.getRowsLimit());
 
         InspectConfig inspectConfig = config.getInspectConfig();
         assertFalse(inspectConfig.getIncludeQuote());
@@ -136,7 +135,7 @@ public class InspectorTest {
         assertEquals("targetDataset", targetTable.getTableReference().getDatasetId());
         assertEquals("targetTable", targetTable.getTableReference().getTableId());
         assertEquals(2, targetTable.getSampleMethodValue());
-        assertEquals(10, targetTable.getRowsLimitPercent());
+        assertEquals(10, targetTable.getRowsLimit());
 
         InspectConfig inspectConfig = config.getInspectConfig();
         assertFalse(inspectConfig.getIncludeQuote());

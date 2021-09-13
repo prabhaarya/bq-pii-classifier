@@ -67,7 +67,7 @@ public class Inspector implements HttpFunction {
                     options.getInputDatasetId(),
                     options.getInputTableId(),
                     Integer.parseInt(environment.getSamplingMethod()),
-                    Integer.parseInt(environment.getRowsLimitPercent()),
+                    Integer.parseInt(environment.getRowsLimit()),
                     environment.getMinLikelihood(),
                     Integer.parseInt(environment.getMaxFindings()),
                     environment.getProjectId(),
@@ -103,7 +103,7 @@ public class Inspector implements HttpFunction {
             String targetTableDataset,
             String targetTable,
             Integer samplingMethod,
-            Integer rowsLimitPercent,
+            Integer rowsLimit,
             String minimumLikelihood,
             Integer maxFindings,
             String resultsProject,
@@ -123,8 +123,7 @@ public class Inspector implements HttpFunction {
         BigQueryOptions bqOptions = BigQueryOptions.newBuilder()
                 .setTableReference(bqTable)
                 .setSampleMethod(BigQueryOptions.SampleMethod.forNumber(samplingMethod))
-                .setRowsLimitPercent(rowsLimitPercent)
-                .setRowsLimit(rowsLimitPercent)
+                .setRowsLimit(rowsLimit)
                 .build();
 
         StorageConfig storageConfig =

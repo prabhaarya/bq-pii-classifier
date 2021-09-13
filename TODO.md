@@ -24,7 +24,8 @@ Every section has its own priority list
 - [x] Fix the logic of broken steps: broken means no 'END' for 3 functions
 - [x] Implement fallback for PII without configured taxonomy - (in configo n project level)
 - [x] Implement IAM binding on taxonomies
-- [] allow policy tag overwrite between all taxonomies created by the solution (all domains)
+- [x] allow policy tag overwrite between all taxonomies created by the solution (all domains)
+- [] Apply row limits in inspection config instead of percentage
 - [] Deploy to VM POC env
 - [ ] Demo to VM
 - [ ] limit terraform sa role instead of using roles/owner
