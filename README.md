@@ -15,13 +15,15 @@ specific PII data types to certain users/groups.
 
 ## Env setup
 ```
-export PROJECT_ID=<>  # project to deploy to
-export DLP
+# project to deploy to
+export PROJECT_ID=<> 
 export REGION=europe-west2
 export BUCKET_NAME=${PROJECT_ID}-bq-security-classifier
 export BUCKET=gs://${BUCKET_NAME}
-export CONFIG=<> # gcloud & terraform config name
-export ACCOUNT=<>  # personal account
+# gcloud & terraform config name
+export CONFIG=<> 
+# personal account
+export ACCOUNT=<>  
 
 gcloud config configurations create $CONFIG
 gcloud config set project $PROJECT_ID
