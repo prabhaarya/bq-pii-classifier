@@ -1,5 +1,14 @@
-# bq-security-classifier
+# BigQuery PII Classifier
 
+# Overview
+
+This a solution to automate the process of discovering and tagging
+PII data across Bigquery tables and applying column level access controls to restrict access to 
+specific PII data types to certain users/groups.
+
+# Architecture
+
+![alt text](diagrams/architecture.jpeg)
 
     
 # Deployment
