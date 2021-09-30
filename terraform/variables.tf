@@ -139,7 +139,13 @@ variable "domain_iam_mapping" {
 //  domain2 = ["serviceAccount:sa@example.com"],
 //}
 
-variable "dlp_service_account" {}
+variable "dlp_service_account" {
+  description = "service account email for DLP to grant permissions to via Terraform"
+}
+
+variable "terraform_service_account" {
+  description = "service account used by terraform to deploy to GCP"
+}
 
 
 

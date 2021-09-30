@@ -1,4 +1,11 @@
 
+no-git
+no-git/*
+
+TODO.md
+
+*.tfvars
+
 *.DS_Store
 
 .idea/

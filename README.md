@@ -6,12 +6,15 @@
 
 ## Env setup
 ```
-export PROJECT_ID=prj-vm-n-data-bqprivacy-poc-01
+export PROJECT_ID=<>  # project to deploy to
+export DLP
 export REGION=europe-west2
-export BUCKET=gs://${PROJECT_ID}-bq-security-classifier
-export ACCOUNT=admin@wadie.joonix.net
+export BUCKET_NAME=${PROJECT_ID}-bq-security-classifier
+export BUCKET=gs://${BUCKET_NAME}
+export CONFIG=<> # gcloud & terraform config name
+export ACCOUNT=<>  # personal account
 
-gcloud config configurations create vrigin-media
+gcloud config configurations create $CONFIG
 gcloud config set project $PROJECT_ID
 gcloud config set compute/region $REGION
 gcloud config set account $ACCOUNT
@@ -34,7 +37,7 @@ gcloud auth application-default login
 
 ## Prepare Terraform 
 
-* Create a bucket for Terraform state and update [backend.tf](terraform/backend.tf)
+* Create a bucket for Terraform state
 ```
 gsutil mb -p $PROJECT_ID -l $REGION -b on $BUCKET
 ```
@@ -48,6 +51,7 @@ export VARS=my-variables.tfvars
 * DLP service account must have Fine-Grained Reader role in order to inspect tagged columns for new data.
 Steps:
  * Detect the DLP service account in the host project
+     * DLP service account is in the form service-<project number>@dlp-api.iam.gserviceaccount.com
      * Search in IAM for @dlp-api.iam.gserviceaccount.com (tick the "Include Google-Provided role grants" box)
      * If this host project never used DLP before, run a sample inspection job for GCP to create a service account
  * Set the `dlp_service_account` variable in the terraform variables file
@@ -55,14 +59,13 @@ Steps:
 
 
 
-### Option 1: Deploy Terraform from local machine
+### Deploy via Terraform
 
 * Set Terraform Service Account
-  * Terraform needs to run with a service account to deploy DLP resources
+  * Terraform needs to run with a service account to deploy DLP resources. User accounts are not enough.  
 
 ```
 export TF_SA=sa-terraform
-export TF_SA_KEY_FILE_PATH=/Users/wadie/terraform_sa_key.json
 
 gcloud iam service-accounts create $TF_SA \
     --description="Used by Terraform to deploy GCP resources" \
@@ -77,52 +80,43 @@ gcloud iam service-accounts add-iam-policy-binding \
     --member="user:${ACCOUNT}" \
     --role="roles/iam.serviceAccountUser"
 
-gcloud iam service-accounts keys create $TF_SA_KEY_FILE_PATH \
-    --iam-account=$TF_SA@$PROJECT_ID.iam.gserviceaccount.com
-
-export GOOGLE_APPLICATION_CREDENTIALS=$TF_SA_KEY_FILE_PATH
-
+gcloud iam service-accounts add-iam-policy-binding \
+    $TF_SA@$PROJECT_ID.iam.gserviceaccount.com \
+    --member="user:${ACCOUNT}" \
+    --role="roles/iam.serviceAccountTokenCreator"
 ```
-
-  * TODO: limit terraform sa role instead of using roles/owner
 
 * Deploy solution
 
 ```
 cd terraform
 
-alias tf=terraform
+terraform init \
+    -backend-config="bucket=${BUCKET_NAME}" \
+    -backend-config="prefix=terraform-state"
 
-tf init
+terraform workspace new $CONFIG
+# or
+terraform workspace select $CONFIG
 
-tf plan -var-file=$VARS
+terraform plan -var-file=$VARS
 
-tf apply -var-file=$VARS -auto-approve
-
-```
-
-### Option 2: Deploy via Cloud Build 
-If you can't create or export service account keys you can run the deployment script 
-within Cloud Build via a [cloudbuild.yaml](cloudbuild.yaml) file.
-
-Steps:
-* Grant the Cloud Build service account all permissions needed to deploy resources
-* Run 
-```
-gcloud builds submit --gcs-source-staging-dir="$BUCKET/cloud-build/"
+terraform apply -var-file=$VARS -auto-approve
 
 ```
 
 # Configure Data Projects
+
 The application is deployed under a host project as set in the `PROJECT_ID` variable.
 To enable the application to scan and tag columns in other projects (i.e. data projects) one must grant a number of
 permissions on each data project. To do, run the following script for each data project:
 
+PS: update the SA emails if the default names have been changed
 
 ```
 export SA_DISPATCHER_EMAIL=sa-sc-dispatcher@${PROJECT_ID}.iam.gserviceaccount.com
 export SA_TAGGER_EMAIL=sa-sc-tagger@${PROJECT_ID}.iam.gserviceaccount.com
-export SA_DLP_EMAIL=service-414082511776@dlp-api.iam.gserviceaccount.com
+export SA_DLP_EMAIL=service-$PROJECT_NUMBER0@dlp-api.iam.gserviceaccount.com
 
 ./scripts/prepare_data_projects.sh "bqsc-marketing" $SA_DISPATCHER_EMAIL $SA_TAGGER_EMAIL $SA_DLP_EMAIL
 ./scripts/prepare_data_projects.sh "bqsc-finance" $SA_DISPATCHER_EMAIL $SA_TAGGER_EMAIL $SA_DLP_EMAIL
@@ -130,17 +124,74 @@ export SA_DLP_EMAIL=service-414082511776@dlp-api.iam.gserviceaccount.com
 ```
 
 
-##### OLD DOCS ####
+# Reporting
 
-# rate limiting
-Inspector
-- DLP: 600 requests per min --> DISPATCH_RATE = 10 (per sec)
-- DLP: 1000 running jobs --> handle via retries since creating jobs is async
-Tagger
-Maximum rate of dataset metadata update operations (including patch) 
- — 5 operations every 10 seconds per dataset --> DISPATCH_RATE = 1 (per sec)
+Get the latest run_id
+
+```
+SELECT MAX(run_id) max_run_id, TIMESTAMP_MILLIS(CAST(SUBSTR(MAX(run_id), 3) AS INT64)) AS start_time, FROM `bq_security_classifier.v_steps`
+
+```
+
+Monitor each invocation of Cloud Functions
+
+```
+SELECT * FROM `bq_security_classifier.v_steps` WHERE run_id = 'R-1631537508737'
+
+```
+
+Monitor failed runs (per table)
+
+```
+SELECT * FROM `bq_security_classifier.v_broken_steps` WHERE run_id = 'R-1631537508737'
+
+```
+
+Monitor column tagging activities
+
+```
+SELECT th.start_time,
+th.run_id,
+th.tracker,
+th.project_id,
+th.dataset_id,
+th.table_id,
+th.field_id,
+ m.info_type,
+ th.existing_policy_tag,
+ th.new_policy_tag,
+ th.operation,
+ th.details
+ FROM `bq_security_classifier.v_log_tag_history` th
+INNER JOIN `bq_security_classifier.v_config_infotypes_policytags_map` m
+ON th.new_policy_tag = m.policy_tag
+WHERE run_id = 'R-1631537508737'
+ORDER BY tracker
+
+
+```
+
+# Updating DLP Info Types
+Steps to add/change an InfoType:
+* Add InfoType to the [inspection_template](terraform/modules/dlp/main.tf)
+* In your .tfvars file Add a mapping entry to variable infoTypeName_policyTagName_map (info type to policy tag name)
+e.g. {info_type = "EMAIL_ADDRESS", policy_tag = "email"}
+* Apply terraform (will create/update the inspection template)
+
+
+
+
+# GCP rate limiting
+Inspector Function:
+* DLP: 600 requests per min --> DISPATCH_RATE = 10 (per sec)
+* DLP: 1000 running jobs --> handle via retries since creating jobs is async
+
+Tagger Function:
+* Maximum rate of dataset metadata update operations (including patch) 
+* 5 operations every 10 seconds per dataset --> DISPATCH_RATE = 1 (per sec)
  (pessimistic setting assuming 1 dataset)(rely on retries as fallback)
- 
+
+Cloud Tasks Configurations:
  DISPATCH_RATE is actually the rate at which tokens in the bucket are refreshed. In conditions where there is a relatively steady flow of tasks, this is the equivalent of the rate at which tasks are dispatched.
  MAX_RUNNING is the maximum number of tasks in the queue that can run at once.
  

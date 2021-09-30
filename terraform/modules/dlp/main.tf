@@ -106,7 +106,7 @@ resource "google_data_loss_prevention_inspect_template" "inspection_template" {
       rules {
         exclusion_rule {
           regex {
-            pattern = ".+@virginmedia.co.uk"
+            pattern = ".+@excluded-example.com"
           }
           matching_type = "MATCHING_TYPE_FULL_MATCH"
         }
