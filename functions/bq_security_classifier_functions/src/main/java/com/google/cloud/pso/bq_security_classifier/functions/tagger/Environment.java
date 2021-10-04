@@ -20,4 +20,8 @@ public class Environment {
         return Utils.getConfigFromEnv("TAXONOMIES", true);
     }
 
+    public Boolean getIsDryRun(){
+        return Boolean.valueOf(Utils.getConfigFromEnv("IS_DRY_RUN", true));
+    }
+
 }

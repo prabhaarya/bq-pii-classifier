@@ -177,6 +177,7 @@ module "cloud_scheduler" {
   projects_include_list = var.projects_include_list
   datasets_exclude_list = var.datasets_exclude_list
   tables_exclude_list = var.tables_exclude_list
+  cron_expression = var.cron_expression
 
   depends_on = [google_project_service.enable_appengine]
 }
@@ -210,6 +211,7 @@ module "cloud_functions" {
   dlp_inspection_template_id = module.dlp.template_id
   bq_view_dlp_fields_findings = module.bigquery.bq_view_dlp_fields_findings
   taxonomies = local.taxonomies
+  is_dry_run = var.is_dry_run
 }
 
 module "dlp" {

@@ -19,3 +19,8 @@ variable "bq_results_table" {}
 variable "dlp_inspection_template_id" {}
 variable "bq_view_dlp_fields_findings" {}
 variable "taxonomies" {}
+variable "is_dry_run" {
+  type = string
+  default = "False"
+  description = "Applying Policy Tags in the Tagger function (False) or just logging actions (True)"
+}

@@ -3,6 +3,7 @@ variable "region" {}
 variable "scheduler_name" {}
 variable "target_uri" {}
 variable "service_account_email" {}
+variable "cron_expression" {}
 
 # DLP scanning scope
 variable "tables_include_list" {}

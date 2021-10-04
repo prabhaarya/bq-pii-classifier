@@ -15,4 +15,15 @@ public class UtilsTest {
 
         assertEquals(expected, actual);
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void getConfigFromEnv_Required() {
+        Utils.getConfigFromEnv("NA_VAR", true);
+    }
+
+    @Test
+    public void getConfigFromEnv_NotRequired() {
+        // should not fail because the VAR is not required
+        Utils.getConfigFromEnv("NA_VAR", false);
+    }
 }

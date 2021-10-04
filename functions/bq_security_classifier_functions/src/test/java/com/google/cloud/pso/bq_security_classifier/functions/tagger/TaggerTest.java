@@ -73,7 +73,9 @@ public class TaggerTest {
 //        when(envMock.getDatasetId()).thenReturn("resultsDataset");
 //        when(envMock.getDlpResultsTable()).thenReturn("resultsTable");
 //        when(envMock.getBqViewFieldsFindings()).thenReturn("bqView");
+          when(envMock.getIsDryRun()).thenReturn(Boolean.TRUE);
           when(envMock.getTaxonomies()).thenReturn("auto_taxonomy_1, auto_taxonomy_2");
+
 
         // Mock Bq service
         when(bigQueryServiceMock.getTableSchemaFields("targetProject", "targetDataset", "targetTable"))

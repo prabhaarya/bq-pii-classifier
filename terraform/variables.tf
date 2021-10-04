@@ -147,6 +147,17 @@ variable "terraform_service_account" {
   description = "service account used by terraform to deploy to GCP"
 }
 
+variable "is_dry_run" {
+  type = string
+  default = "False"
+  description = "Applying Policy Tags in the Tagger function (False) or just logging actions (True)"
+}
+
+variable "cron_expression" {
+  type = string
+  description = "Cron expression used by the Cloud Scheduler to run a full scan"
+}
+
 
 
 

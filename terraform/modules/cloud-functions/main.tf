@@ -151,6 +151,7 @@ resource "google_cloudfunctions_function" "function_tagger" {
     BQ_VIEW_FIELDS_FINDINGS = var.bq_view_dlp_fields_findings
     DLP_RESULTS_TABLE = var.bq_results_table
     TAXONOMIES = var.taxonomies
+    IS_DRY_RUN = var.is_dry_run
   }
 }
 

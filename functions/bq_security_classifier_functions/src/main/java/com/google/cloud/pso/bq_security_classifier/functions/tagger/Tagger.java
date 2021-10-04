@@ -123,12 +123,14 @@ public class Tagger implements HttpFunction {
             logger.logInfoWithTracker(trackingId, String.format("Computed Fields to Policy Tags mapping : %s", fieldsToPolicyTagsMap.toString()));
 
             // Apply policy tags to columns in BigQuery
+            // If isDryRun = True no actual tagging will happen on BogQuery and Dry-Run log entries will be written instead
             List<TableFieldSchema> updatedFields = applyPolicyTags(
                     inspectedTable.getProjectId(),
                     inspectedTable.getDatasetId(),
                     inspectedTable.getTableId(),
                     fieldsToPolicyTagsMap,
                     new HashSet(Utils.tokenize(environment.getTaxonomies(), ",", true)),
+                    environment.getIsDryRun(),
                     trackingId);
 
             // used in unit testing
@@ -172,6 +174,7 @@ public class Tagger implements HttpFunction {
                                                   String tableId,
                                                   Map<String, String> fieldsToPolicyTagsMap,
                                                   Set<String> app_managed_taxonomies,
+                                                  Boolean isDryRun,
                                                   String trackingId) throws IOException {
 
         List<TableFieldSchema> currentFields = bqService.getTableSchemaFields(projectId, datasetId, tableId);
@@ -201,7 +204,7 @@ public class Tagger implements HttpFunction {
                             field.getName(),
                             "",
                             newPolicyTagId,
-                            "CREATE",
+                            isDryRun? ColumnTaggingAction.DRY_RUN_CREATE: ColumnTaggingAction.CREATE,
                             ""
                     );
                     policyUpdateLogs.add(Tuple.of(logMsg, Level.INFO));
@@ -226,7 +229,7 @@ public class Tagger implements HttpFunction {
                                     field.getName(),
                                     existingPolicyTagId,
                                     newPolicyTagId,
-                                    "NO_CHANGE",
+                                    isDryRun? ColumnTaggingAction.DRY_RUN_NO_CHANGE: ColumnTaggingAction.NO_CHANGE,
                                     "Existing policy tag is the same as newly computed tag."
                             );
                             policyUpdateLogs.add(Tuple.of(logMsg, Level.INFO));
@@ -242,7 +245,7 @@ public class Tagger implements HttpFunction {
                                     field.getName(),
                                     existingPolicyTagId,
                                     newPolicyTagId,
-                                    "OVERWRITE",
+                                    isDryRun? ColumnTaggingAction.DRY_RUN_OVERWRITE: ColumnTaggingAction.OVERWRITE,
                                     ""
                             );
                             policyUpdateLogs.add(Tuple.of(logMsg, Level.INFO));
@@ -257,7 +260,7 @@ public class Tagger implements HttpFunction {
                                 field.getName(),
                                 existingPolicyTagId,
                                 newPolicyTagId,
-                                "KEEP_EXISTING",
+                                isDryRun? ColumnTaggingAction.DRY_RUN_KEEP_EXISTING: ColumnTaggingAction.KEEP_EXISTING,
                                 "Can't overwrite tags that are not crated/managed by the application. The existing taxonomy is created by another app/user"
                         );
                         policyUpdateLogs.add(Tuple.of(logMsg, Level.WARNING));
@@ -268,8 +271,11 @@ public class Tagger implements HttpFunction {
             updatedFields.add(field);
         }
 
-        // patch the table with the new schema including new policy tags
-        bqService.patchTable(projectId, datasetId, tableId, updatedFields);
+        // if it's not a dry run, patch the table with the new schema including new policy tags
+        if (!isDryRun) {
+            bqService.patchTable(projectId, datasetId, tableId, updatedFields);
+        }
+
 
         // log all actions on policy tags after bq.tables.patch operation is successful
         for (Tuple<String, Level> t : policyUpdateLogs) {

@@ -5,7 +5,7 @@
 resource "google_cloud_scheduler_job" "scheduler_job" {
   name             = var.scheduler_name
   description      = "CRON job to trigger BQ Security Classifier"
-  schedule         = "0 0 * * *"
+  schedule         = var.cron_expression
 
   retry_config {
     retry_count = 1
@@ -21,7 +21,7 @@ resource "google_cloud_scheduler_job" "scheduler_job" {
       datasetsInclude = var.datasets_include_list
       projectsInclude = var.projects_include_list
       datasetsExclude = var.datasets_exclude_list
-      tablesExclude = var.datasets_exclude_list
+      tablesExclude = var.tables_exclude_list
 
     }))
 
