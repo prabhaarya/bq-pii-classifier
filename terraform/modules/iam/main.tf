@@ -78,6 +78,13 @@ resource "google_project_iam_member" "sa_dispatcher_tasks_enqueuer" {
 
 #### Inspector SA Permissions ###
 
+# Grant sa_inspector access to view bq table metadata (e.g. rows count)
+resource "google_project_iam_member" "sa_inspector_bq_metadata_viewer" {
+  project = var.project
+  role = "roles/bigquery.metadataViewer"
+  member = "serviceAccount:${google_service_account.sa_inspector.email}"
+}
+
 # Grant sa_inspector access to list dlp jobs
 resource "google_project_iam_member" "sa_inspector_dlp_jobs_editor" {
   project = var.project

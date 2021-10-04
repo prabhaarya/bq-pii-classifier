@@ -1,8 +1,14 @@
 package com.google.cloud.pso.bq_security_classifier.helpers;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import com.google.cloud.pso.bq_security_classifier.helpers.Utils;
+
+import java.util.Map;
+import java.util.SortedMap;
 
 public class UtilsTest {
 

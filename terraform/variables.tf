@@ -158,6 +158,14 @@ variable "cron_expression" {
   description = "Cron expression used by the Cloud Scheduler to run a full scan"
 }
 
+variable "table_scan_limits_json_config" {
+  type = string
+  description = "JSON config to specify table scan limits intervals"
+  // Example
+  // "{"limitType": "NUMBER_OF_ROWS", "limits": {"10000": "100","100000": "5000", "1000000": "7000"}}"
+  // "{"limitType": "PERCENTAGE_OF_ROWS", "limits": {"10000": "10","100000": "5", "1000000": "1"}}"
+}
+
 
 
 

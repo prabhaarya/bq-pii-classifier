@@ -11,11 +11,14 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
+import com.google.cloud.pso.bq_security_classifier.helpers.TableScanLimitsConfig;
+import com.google.cloud.pso.bq_security_classifier.services.BigQueryServiceImpl;
 import com.google.cloud.pso.bq_security_classifier.services.DlpServiceImpl;
 import com.google.cloud.pso.bq_security_classifier.functions.inspector.Inspector;
 import com.google.cloud.pso.bq_security_classifier.functions.inspector.Environment;
 
 import java.io.*;
+import java.math.BigInteger;
 
 import com.google.privacy.dlp.v2.*;
 import org.junit.Test;
@@ -30,6 +33,8 @@ public class InspectorTest {
     @Mock Environment envMock;
 
     @Mock DlpServiceImpl dlpServiceMock;
+
+    @Mock BigQueryServiceImpl bqServiceMock;
 
     @Mock HttpRequest requestMock;
 
@@ -58,6 +63,10 @@ public class InspectorTest {
         when(dlpServiceMock.submitJob(any()))
                 .thenReturn(DlpJob.newBuilder().setName("testTrackingId").build());
 
+        // set up dlpService Mock
+        when(bqServiceMock.getTableNumRows(any(), any(), any()))
+                .thenReturn(BigInteger.valueOf(100));
+
         // set up env Mock
         when(envMock.getProjectId()).thenReturn("serviceProject");
         when(envMock.getRegionId()).thenReturn("serviceRegion");
@@ -67,7 +76,7 @@ public class InspectorTest {
         when(envMock.getMinLikelihood()).thenReturn("LIKELY");
         when(envMock.getMaxFindings()).thenReturn("50");
         when(envMock.getSamplingMethod()).thenReturn("2");
-        when(envMock.getRowsLimit()).thenReturn("10");
+        when(envMock.getTableScanLimitsJsonConfig()).thenReturn("{\"limitType\": \"NUMBER_OF_ROWS\", \"limits\": {\"5000\": \"500\",\"1000\": \"100\", \"2000\": \"200\"}}");
         when(envMock.getDlpInspectionTemplateId()).thenReturn("dlpTemplate");
 
         // expected output
@@ -91,7 +100,7 @@ public class InspectorTest {
         assertEquals("targetDataset", targetTable.getTableReference().getDatasetId());
         assertEquals("targetTable", targetTable.getTableReference().getTableId());
         assertEquals(2, targetTable.getSampleMethodValue());
-        assertEquals(10, targetTable.getRowsLimit());
+        assertEquals(100, targetTable.getRowsLimit());
 
         InspectConfig inspectConfig = config.getInspectConfig();
         assertFalse(inspectConfig.getIncludeQuote());
@@ -115,12 +124,15 @@ public class InspectorTest {
     @Test
     public void testCreateJob() throws IOException {
 
+        TableScanLimitsConfig limitsConfig = new TableScanLimitsConfig("{\"limitType\": \"NUMBER_OF_ROWS\", \"limits\": {\"5000\": \"500\",\"1000\": \"100\", \"2000\": \"200\"}}")
+;
         InspectJobConfig config = Inspector.createJob(
                 "targetProject",
                 "targetDataset",
                 "targetTable",
                 2,
-                10,
+                limitsConfig,
+                500,
                 "LIKELY",
                 50,
                 "resultsProject",
@@ -135,7 +147,7 @@ public class InspectorTest {
         assertEquals("targetDataset", targetTable.getTableReference().getDatasetId());
         assertEquals("targetTable", targetTable.getTableReference().getTableId());
         assertEquals(2, targetTable.getSampleMethodValue());
-        assertEquals(10, targetTable.getRowsLimit());
+        assertEquals(100, targetTable.getRowsLimit());
 
         InspectConfig inspectConfig = config.getInspectConfig();
         assertFalse(inspectConfig.getIncludeQuote());

@@ -10,6 +10,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.*;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -85,11 +86,11 @@ public class BigQueryServiceImpl implements BigQueryService {
     @Override
     public List<TableFieldSchema> getTableSchemaFields(String projectId, String datasetId, String tableId) throws IOException {
 
-        com.google.api.services.bigquery.model.Table targetTable = bqAPI.tables()
+        return bqAPI.tables()
                 .get(projectId, datasetId, tableId)
-                .execute();
-
-        return targetTable.getSchema().getFields();
+                .execute()
+                .getSchema()
+                .getFields();
     }
 
     @Override
@@ -102,7 +103,13 @@ public class BigQueryServiceImpl implements BigQueryService {
                 .execute();
     }
 
-
+    @Override
+    public BigInteger getTableNumRows(String projectId, String datasetId, String tableId) throws IOException {
+        return bqAPI.tables()
+                .get(projectId, datasetId, tableId)
+                .execute()
+                .getNumRows();
+    }
 
 
 }

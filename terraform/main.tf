@@ -212,6 +212,7 @@ module "cloud_functions" {
   bq_view_dlp_fields_findings = module.bigquery.bq_view_dlp_fields_findings
   taxonomies = local.taxonomies
   is_dry_run = var.is_dry_run
+  table_scan_limits_json_config = var.table_scan_limits_json_config
 }
 
 module "dlp" {

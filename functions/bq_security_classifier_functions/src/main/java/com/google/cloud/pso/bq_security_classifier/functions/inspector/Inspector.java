@@ -4,6 +4,10 @@ import com.google.cloud.functions.HttpFunction;
 import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
 import com.google.cloud.pso.bq_security_classifier.helpers.LoggingHelper;
+import com.google.cloud.pso.bq_security_classifier.helpers.TableScanLimitsConfig;
+import com.google.cloud.pso.bq_security_classifier.helpers.TableScanLimitsType;
+import com.google.cloud.pso.bq_security_classifier.services.BigQueryService;
+import com.google.cloud.pso.bq_security_classifier.services.BigQueryServiceImpl;
 import com.google.cloud.pso.bq_security_classifier.services.DlpService;
 import com.google.cloud.pso.bq_security_classifier.services.DlpServiceImpl;
 import com.google.gson.Gson;
@@ -13,6 +17,7 @@ import com.google.privacy.dlp.v2.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 
 import com.google.cloud.pso.bq_security_classifier.helpers.Utils;
 
@@ -31,6 +36,7 @@ public class Inspector implements HttpFunction {
     private static final Gson gson = new Gson();
 
     private DlpService dlpService;
+    private BigQueryService bqService;
     private Environment environment;
 
     private DlpJob submittedDlpJob;
@@ -47,6 +53,7 @@ public class Inspector implements HttpFunction {
     public Inspector() throws IOException {
         dlpService = new DlpServiceImpl();
         environment = new Environment();
+        bqService = new BigQueryServiceImpl();
     }
 
     @Override
@@ -61,13 +68,30 @@ public class Inspector implements HttpFunction {
         logger.logFunctionStart(options.getTrackingId());
 
         try {
-            logger.logInfoWithTracker(options.getTrackingId(), String.format("Parsed arguments %s", options.toString()));
+            logger.logInfoWithTracker(options.getTrackingId(),
+                    String.format("Parsed arguments %s", options.toString()));
+
+            // get Table Scan Limits config and Table size
+            TableScanLimitsConfig tableScanLimitsConfig  = new TableScanLimitsConfig(
+                    environment.getTableScanLimitsJsonConfig());
+
+            logger.logInfoWithTracker(options.getTrackingId(),
+                    String.format("TableScanLimitsConfig is %s", tableScanLimitsConfig.toString()));
+
+            // DLP job config accepts Integer only for table scan limit. Must downcast
+            // NumRows from BigInteger to Integer
+            Integer tableNumRows = bqService.getTableNumRows(
+                    options.getInputProjectId(),
+                    options.getInputDatasetId(),
+                    options.getInputTableId()
+            ).intValue();
 
             InspectJobConfig jobConfig = createJob(options.getInputProjectId(),
                     options.getInputDatasetId(),
                     options.getInputTableId(),
                     Integer.parseInt(environment.getSamplingMethod()),
-                    Integer.parseInt(environment.getRowsLimit()),
+                    tableScanLimitsConfig,
+                    tableNumRows,
                     environment.getMinLikelihood(),
                     Integer.parseInt(environment.getMaxFindings()),
                     environment.getProjectId(),
@@ -103,7 +127,8 @@ public class Inspector implements HttpFunction {
             String targetTableDataset,
             String targetTable,
             Integer samplingMethod,
-            Integer rowsLimit,
+            TableScanLimitsConfig rowsLimitConfig,
+            Integer tableNumRows,
             String minimumLikelihood,
             Integer maxFindings,
             String resultsProject,
@@ -120,17 +145,23 @@ public class Inspector implements HttpFunction {
                 .setTableId(targetTable)
                 .build();
 
-        BigQueryOptions bqOptions = BigQueryOptions.newBuilder()
+        BigQueryOptions.Builder bqOptionsBuilder = BigQueryOptions.newBuilder()
                 .setTableReference(bqTable)
-                .setSampleMethod(BigQueryOptions.SampleMethod.forNumber(samplingMethod))
-                .setRowsLimit(rowsLimit)
-                .build();
+                .setSampleMethod(BigQueryOptions.SampleMethod.forNumber(samplingMethod));
+
+        Integer limitValue =  rowsLimitConfig.getTableScanLimitBasedOnNumRows(tableNumRows);
+
+        switch (rowsLimitConfig.getScanLimitsType()){
+            case NUMBER_OF_ROWS:  bqOptionsBuilder.setRowsLimit(limitValue); break;
+            case PERCENTAGE_OF_ROWS: bqOptionsBuilder.setRowsLimitPercent(limitValue); break;
+        }
+
+        BigQueryOptions bqOptions = bqOptionsBuilder.build();
 
         StorageConfig storageConfig =
                 StorageConfig.newBuilder()
                         .setBigQueryOptions(bqOptions)
                         .build();
-
 
         // The minimum likelihood required before returning a match:
         // See: https://cloud.google.com/dlp/docs/likelihood

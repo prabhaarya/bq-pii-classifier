@@ -36,11 +36,11 @@ public class Environment {
         return Utils.getConfigFromEnv("SAMPLING_METHOD", true);
     }
 
-    public String getRowsLimit(){
-        return Utils.getConfigFromEnv("ROWS_LIMIT", true);
-    }
-
     public String getDlpInspectionTemplateId(){
         return Utils.getConfigFromEnv("DLP_INSPECTION_TEMPLATE_ID", true);
+    }
+
+    public String getTableScanLimitsJsonConfig(){
+        return Utils.getConfigFromEnv("TABLE_SCAN_LIMITS_JSON_CONFIG", true);
     }
 }

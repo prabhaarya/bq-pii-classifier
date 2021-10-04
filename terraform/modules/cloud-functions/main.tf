@@ -87,10 +87,10 @@ resource "google_cloudfunctions_function" "function_inspector" {
     MAX_FINDINGS_PER_ITEM = "50"
     #  Select value from  SAMPLE_METHOD_UNSPECIFIED=0  TOP=1  RANDOM_START=2
     SAMPLING_METHOD = "2"
-    ROWS_LIMIT = "1000"
     DLP_NOTIFICATION_TOPIC = var.dlp_notifications_topic_fqn
     BQ_RESULTS_DATASET = var.bq_results_dataset
     BQ_RESULTS_TABLE = var.bq_results_table
+    TABLE_SCAN_LIMITS_JSON_CONFIG = var.table_scan_limits_json_config
   }
 }
 
