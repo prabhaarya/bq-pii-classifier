@@ -10,7 +10,183 @@ specific PII data types to certain users/groups.
 
 ![alt text](diagrams/architecture.jpeg)
 
-    
+# Configuration
+
+The solution is deployed by Terraform and thus all configurations are done
+on the Terraform side.
+
+## Create a Terraform .tfvars file
+
+Create a new .tfvars file and override the variables
+
+```
+export VARS=my-variables.tfvars
+```
+
+## Configure Basic Variables
+
+Most required variables have default names defined in [variables.tf](terraform/variables.tf).
+You can use the defaults or overwrite them in the .tfvars file you just created.
+
+Both ways, you must define the below variables:
+
+```
+project = "<GCP project ID to deploy solution to>"
+region = "<GCP region>"
+```
+
+PS: Cloud tasks queues can't be re-created with the same name
+after deleting them. If you deleted the queues (manually or via Terraform), you must provide
+new names other than the defaults otherwise Terraform will fail to deploy them.
+
+## Configure Scanning Scope
+
+Override the following variables to define the scanning scope of the entry point Cloud Scheduler.
+
+At least one variable should be provided among the _INCLUDE configs.
+
+tables format: "project.dataset.table1, project.dataset.table2, etc"
+datasets format: "project.dataset, project.dataset, etc"
+projects format: "project1, project2, etc"
+
+```
+tables_include_list = ""
+datasets_include_list = ""
+projects_include_list = ""
+datasets_exclude_list = ""
+tables_exclude_list = ""
+```
+## Configure InfoTypes Mapping
+
+For each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
+generated policy_tag_id
+
+PS: INFO_TYPEs configured in the [DLP inspection job](terraform/modules/dlp/main.tf) 
+MUST be mapped here. Otherwise, mapping to policy tag ids will fail
+
+```
+
+infoTypeName_policyTagName_map = [
+  {
+    info_type = "EMAIL_ADDRESS",
+    policy_tag = "email"
+  },
+  {
+    info_type = "PHONE_NUMBER",
+    policy_tag = "phone"
+  },
+  .. etc
+]
+```
+
+## Configure Domain Mapping
+
+Domains are logical units (e.g. departments, source system, etc) that
+you can segregate access control based on it. For example, marketing PII readers
+shouldn't have access to finance PII data.
+
+This is done by creating a Policy Tag taxonomy per domain.
+
+You can define one domain per project that will be applied to all
+BigQuery tables inside it. Additionally, you can overwrite this default project 
+domain on dataset level (e.g. in case of a DWH project having data from different domains).
+
+
+```
+domain_mapping = [
+  {
+    project = "marketing-project",
+    domain = "marketing"
+  },
+  {
+    project = "dwh-project",
+    domain = "dwh"
+    datasets = [
+      {
+        name = "demo_marketing",
+        domain = "marketing"
+      },
+      {
+        name = "demo_finance",
+        domain = "finance"
+      }
+    ]
+  }
+]
+```
+## Configure domain-IAM mapping
+
+For each domain you defined in the "domain_mapping" config, you must 
+provide a list of one or more user or groups that will have access to PII
+data tagged under this domain.
+
+For users: "user:username@example.com"
+For groups: "group:groupname@example.com"
+
+For example:
+
+```
+domain_iam_mapping = {
+  marketing = ["group:marketing-pii-readers@example.com"],
+  finance = ["group:finance-pii-readers@example.com", "user:admin@example.com"],
+  dwh = ["user:username1@example.com", "user:username2@example.com"],
+}
+```
+
+## Configure DLP Service Account
+
+* DLP service account must have Fine-Grained Reader role on the created taxonomies in order to inspect tagged columns for new data.
+Steps:
+ * Detect the DLP service account in the host project
+     * DLP service account is in the form service-<project number>@dlp-api.iam.gserviceaccount.com
+     * Search in IAM for @dlp-api.iam.gserviceaccount.com (tick the "Include Google-Provided role grants" box)
+     * If this host project never used DLP before, run a sample inspection job for GCP to create a service account
+ * Set the `dlp_service_account` variable in the terraform variables file
+
+```
+dlp_service_account = "service-<project number>@dlp-api.iam.gserviceaccount.com"
+
+```
+
+## Configure DryRun
+
+By setting `is_dry_run = "True"` the solution will scan BigQuery tables 
+for PII data, store the scan result, but it will not apply policy tags to columns.
+Instead, the "Tagger" function will only log [actions](functions/bq_security_classifier_functions/src/main/java/com/google/cloud/pso/bq_security_classifier/functions/tagger/ColumnTaggingAction.java).
+
+Check the Monitoring sections on how to access these logs.  
+
+```
+is_dry_run = "False"
+```
+
+## Configure Cloud Scheduler CRON
+
+Configure the schedule on which the scan should take place.
+
+PS: the current solution has one entry point/scheduler but one can extend the solution
+by adding more schedulers that have different scanning scope and/or timing.
+
+```
+cron_expression = "0 0 * * *"
+```
+
+## Configure Table Scan Limits
+
+This will define the scan limit of the DLP jobs when they inspect BigQuery tables. 
+`limitType`: could be `NUMBER_OF_ROWS` or `PERCENTAGE_OF_ROWS`.
+`limits`: key/value pairs of {interval_upper_limit, rows_to_sample}. For example,
+`"limits": { "1000": "100" , "5000": "500"}` means that tables  with 0-1000
+records will use a sample of 100 records, tables between 1001-5000 will sample 500 records
+and tables 5001-INF will also use 500 records.
+
+When using `PERCENTAGE_OF_ROWS` the rows_to_sample should be an integer between 1-100. For example,
+20 means 20%.
+
+```
+table_scan_limits_json_config = "{\"limitType\": \"NUMBER_OF_ROWS\", \"limits\": {\"10000\": \"100\",\"100000\": \"5000\", \"1000000\": \"7000\"}}"
+```
+
 # Deployment
 
 ## Env setup
@@ -58,19 +234,7 @@ gsutil mb -p $PROJECT_ID -l $REGION -b on $BUCKET
 export VARS=my-variables.tfvars
 ```
 
-
-* DLP service account must have Fine-Grained Reader role in order to inspect tagged columns for new data.
-Steps:
- * Detect the DLP service account in the host project
-     * DLP service account is in the form service-<project number>@dlp-api.iam.gserviceaccount.com
-     * Search in IAM for @dlp-api.iam.gserviceaccount.com (tick the "Include Google-Provided role grants" box)
-     * If this host project never used DLP before, run a sample inspection job for GCP to create a service account
- * Set the `dlp_service_account` variable in the terraform variables file
-
-
-
-
-### Deploy via Terraform
+## Deploy via Terraform
 
 * Set Terraform Service Account
   * Terraform needs to run with a service account to deploy DLP resources. User accounts are not enough.  
