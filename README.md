@@ -1,6 +1,6 @@
 # BigQuery PII Classifier
 
-# Table of Contents
+## Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Configuration](#configuration)
@@ -129,27 +129,34 @@ projects_include_list = ""
 datasets_exclude_list = ""
 tables_exclude_list = ""
 ```
-### Configure InfoTypes Mapping
+### Configure Data Classification Taxonomy
 
-A one-to-one mapping between InfoTypes and policy tags. 
-This will enable the solution to identify which policy tag to apply to a column based on the PII/InfoType discovered.
+A mapping between DLP InfoTypes, policy tags and classifications.
+Classifications are parent nodes in the taxonomy to group children nodes.
+
+This will enable the solution:
+ * Build hierarchical policy tag taxonomies
+ * To identify which policy tag to apply to a column based on the PII/InfoType discovered
 
 PS: INFO_TYPEs configured in the [DLP inspection job](terraform/modules/dlp/main.tf) 
 MUST be mapped here. Otherwise, mapping to policy tag ids will fail
 
 ```
 
-infoTypeName_policyTagName_map = [
+classification_taxonomy = [
   {
     info_type = "EMAIL_ADDRESS",
-    policy_tag = "email"
+    policy_tag = "email",
+    classification = "High"
   },
   {
     info_type = "PHONE_NUMBER",
     policy_tag = "phone"
+    classification = "Low"
   },
+
   .. etc
-]
+  ]
 ```
 
 ### Configure Domain Mapping
@@ -188,7 +195,11 @@ domain_mapping = [
 ```
 ### Configure domain-IAM mapping
 
-A one-to-many mapping between domains and IAM users and/or groups. This will determine who has access to PII data under each domain
+A mapping between domains/classifications and IAM users and/or groups. 
+This will determine who has access to PII data under each domain and classification.
+
+The keys of this Map are in the format "<domain>_<classification>"
+and values are in the format "[list of IAM members]"
 
 For users: "user:username@example.com"
 For groups: "group:groupname@example.com"
@@ -196,10 +207,13 @@ For groups: "group:groupname@example.com"
 For example:
 
 ```
-domain_iam_mapping = {
-  marketing = ["group:marketing-pii-readers@example.com"],
-  finance = ["group:finance-pii-readers@example.com", "user:admin@example.com"],
-  dwh = ["user:username1@example.com", "user:username2@example.com"],
+iam_mapping = {
+  marketing_High = ["group:marketing-high-pii-readers@example.com"],
+  marketing_Low = ["group:marketing-low-pii-readers@example.com"],
+  finance_High = ["user:finance-high-pii-reader@wadie.joonix.net"],
+  finance_Low = ["user:finance-low-pii-reader@wadie.joonix.net"],
+  dwh_High = ["group:marketing-high-pii-readers@example.com", "user:finance-high-pii-reader@wadie.joonix.net"],
+  dwh_Low = ["group:marketing-low-pii-readers@example.com", "user:finance-low-pii-reader@wadie.joonix.net"]
 }
 ```
 
@@ -361,10 +375,11 @@ PS: update the SA emails if the default names have been changed
 ```
 export DATA_PROJECT=<>
 export SA_DISPATCHER_EMAIL=sa-sc-dispatcher@${PROJECT_ID}.iam.gserviceaccount.com
+export SA_INSPECTOR_EMAIL=sa-sc-inspector@${PROJECT_ID}.iam.gserviceaccount.com
 export SA_TAGGER_EMAIL=sa-sc-tagger@${PROJECT_ID}.iam.gserviceaccount.com
 export SA_DLP_EMAIL=service-$PROJECT_NUMBER0@dlp-api.iam.gserviceaccount.com
 
-./scripts/prepare_data_projects.sh "${DATA_PROJECT}" $SA_DISPATCHER_EMAIL $SA_TAGGER_EMAIL $SA_DLP_EMAIL
+./scripts/prepare_data_projects.sh "${DATA_PROJECT}" $SA_DISPATCHER_EMAIL $SA_INSPECTOR_EMAIL $SA_TAGGER_EMAIL $SA_DLP_EMAIL
 ```
 
 

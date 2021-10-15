@@ -89,18 +89,22 @@ variable "projects_include_list" {}
 variable "datasets_exclude_list" {}
 variable "tables_exclude_list" {}
 
-# for each project in scope, these policy tags will be created in the taxonomy and mapped in BQ configuration with the
-# generated policy_tag_id
-variable "infoTypeName_policyTagName_map" {}
+# for each domain in scope, these policy tags will be created in a domain-specific taxonomy
+# and mapped in BQ configuration with the generated policy_tag_id. Each policy tag will be created
+# under a parent node based on the 'classification' field
+# INFO_TYPEs configured in the DLP inspection job MUST be mapped here. Otherwise, mapping to policy tag ids will fail
+variable "classification_taxonomy" {}
 //Example:
-//infoTypeName_policyTagName_map = [
+//classification_taxonomy = [
 //  {
 //    info_type = "EMAIL_ADDRESS",
-//    policy_tag = "email"
+//    policy_tag = "email",
+//    classification = "P1"
 //  },
 //  {
 //    info_type = "PHONE_NUMBER",
 //    policy_tag = "phone"
+//    classification = "P2"
 //  }
 //  ]
 
@@ -130,13 +134,17 @@ variable "domain_mapping" {
 //]
 
 
-variable "domain_iam_mapping" {
-  description = "Mapping for domains and IAM members to grant required permissions to read sensitive BQ columns belonging to that domain"
+variable "iam_mapping" {
+  description = "List of mappings between domains/classification and IAM members to grant required permissions to read sensitive BQ columns belonging to that domain/classification"
 }
 //Example:
-//domain_iam_mapping = {
-//  domain1 = ["group:groupname@example.com", "user:username@example.com"],
-//  domain2 = ["serviceAccount:sa@example.com"],
+//iam_mapping = {
+//  marketing_P1 = ["user:marketing-p1-reader@wadie.joonix.net"],
+//  marketing_P2 = ["user:marketing-p2-reader@wadie.joonix.net"],
+//  finance_P1 = ["user:finance-p1-reader@wadie.joonix.net"],
+//  finance_P2 = ["user:finance-p2-reader@wadie.joonix.net"],
+//  dwh_P1 = ["user:dwh-p1-reader@wadie.joonix.net"],
+//  dwh_P2 = ["user:dwh-p2-reader@wadie.joonix.net"],
 //}
 
 variable "dlp_service_account" {

@@ -106,15 +106,23 @@ locals {
   // Concat project and dataset domains and filter out empty strings
   domains = distinct(concat(local.project_domains, local.dataset_domains))
 
-  taxonomies = join(",", [for taxonomy in module.data-catalog.created_taxonomies: taxonomy.name])
+  # comma separated string with taxonomy names
+  created_taxonomies = join(",", [for taxonomy in module.data-catalog[*].created_taxonomy: taxonomy.name])
+
+  // one list of all policy tags generated across domain taxonomies
+  // each element of the list is a map with three attributes (policy_tag_id, domain, info_type)
+  created_policy_tags = flatten(module.data-catalog[*].created_children_tags)
+
+  created_parent_tags = flatten(module.data-catalog[*].created_parent_tags)
 }
 
 module "data-catalog" {
+  count = length(local.domains)
   source = "./modules/data-catalog"
   project = var.project
   region = var.region
-  taxonomy_parents = local.domains
-  taxonomy_children = var.infoTypeName_policyTagName_map
+  domain = local.domains[count.index]
+  nodes = var.classification_taxonomy
 }
 
 module "cloud_logging" {
@@ -133,7 +141,7 @@ module "bigquery" {
   logging_sink_sa = module.cloud_logging.service_account
 
   # Data for config views
-  created_policy_tags = module.data-catalog.created_policy_tags
+  created_policy_tags = local.created_policy_tags
   dataset_domains_mapping = local.datasets_and_domains_filtered
   projects_domains_mapping = local.project_and_domains_filtered
 }
@@ -159,9 +167,10 @@ module "iam" {
   sa_inspector_tasks = var.sa_inspector_tasks
   sa_tagger_tasks = var.sa_tagger_tasks
   sa_scheduler = var.sa_scheduler
-  taxonomies = module.data-catalog.created_taxonomies
-  domain_iam_mapping = var.domain_iam_mapping
+  taxonomy_parent_tags = local.created_parent_tags
+  iam_mapping = var.iam_mapping
   dlp_service_account = var.dlp_service_account
+
 }
 
 module "cloud_scheduler" {
@@ -210,7 +219,7 @@ module "cloud_functions" {
   tagger_queue_name = var.tagger_queue
   dlp_inspection_template_id = module.dlp.template_id
   bq_view_dlp_fields_findings = module.bigquery.bq_view_dlp_fields_findings
-  taxonomies = local.taxonomies
+  taxonomies = local.created_taxonomies
   is_dry_run = var.is_dry_run
   table_scan_limits_json_config = var.table_scan_limits_json_config
 }

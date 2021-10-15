@@ -160,27 +160,39 @@ resource "google_project_iam_member" "dlp_sa_binding" {
 
 ############## Data Catalog Taxonomies Permissions ################################
 
-# Create a flat list of (member, taxonomies) to loop on based on the provided mapping
+
 locals {
-  taxonomies_members = flatten([
-  for taxonomy in var.taxonomies : [
-  for member in lookup(var.domain_iam_mapping, taxonomy.display_name) : {
-    member   = member
-    taxonomy = taxonomy.name
-  }
-  ]
-  ])
+
+  # For each parent tag: omit the tag_id and lookup the list of IAM members to grant access to
+  parent_tags_with_members_list = [for parent_tag in var.taxonomy_parent_tags:
+    {
+      policy_tag_name = lookup(parent_tag, "id")
+      # lookup the iam_mapping variable with the key <domain>_<classification>
+      # parent_tag.display_name is the classification
+      iam_members = lookup(var.iam_mapping,
+      "${lookup(parent_tag, "domain", "NA")}_${lookup(parent_tag, "display_name", "NA")}",
+      ["IAM_MEMBERS_LOOKUP_FAILED"]
+      )
+
+    }]
+
+  // flatten the iam_members list inside of parent_tags_with_members_list
+  iam_members_list = flatten([for entry in local.parent_tags_with_members_list:[
+  for member in lookup(entry, "iam_members", "NA"):
+    {
+      policy_tag_name = lookup(entry, "policy_tag_name", "NA")
+      iam_member = member
+    }
+  ]])
 }
 
-# Grant permissions for every member to the taxonomy based on the provided mapping.
-resource "google_data_catalog_taxonomy_iam_member" "taxonomy_reader" {
-  provider = google-beta
-  # Create IAM binding for each domain/taxonomy
-  count = length(local.taxonomies_members)
-  taxonomy = local.taxonomies_members[count.index].taxonomy
+# Grant permissions for every member in the iam_members_list
+resource "google_data_catalog_policy_tag_iam_member" "policy_tag_reader" {
+  provider = "google-beta"
+  count = length(local.iam_members_list)
+  policy_tag = lookup(local.iam_members_list[count.index], "policy_tag_name")
   role = "roles/datacatalog.categoryFineGrainedReader"
-  # lookup the members list by the domain name
-  member = local.taxonomies_members[count.index].member
+  member = lookup(local.iam_members_list[count.index], "iam_member")
 }
 
 
