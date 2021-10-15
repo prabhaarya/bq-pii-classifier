@@ -361,10 +361,12 @@ PS: update the SA emails if the default names have been changed
 ```
 export DATA_PROJECT=<>
 export SA_DISPATCHER_EMAIL=sa-sc-dispatcher@${PROJECT_ID}.iam.gserviceaccount.com
+export SA_INSPECTOR_EMAIL=sa-sc-inspector@${PROJECT_ID}.iam.gserviceaccount.com
 export SA_TAGGER_EMAIL=sa-sc-tagger@${PROJECT_ID}.iam.gserviceaccount.com
 export SA_DLP_EMAIL=service-$PROJECT_NUMBER0@dlp-api.iam.gserviceaccount.com
 
-./scripts/prepare_data_projects.sh "${DATA_PROJECT}" $SA_DISPATCHER_EMAIL $SA_TAGGER_EMAIL $SA_DLP_EMAIL
+./scripts/prepare_data_projects.sh "${DATA_PROJECT}" $SA_DISPATCHER_EMAIL $SA_INSPECTOR_EMAIL $SA_TAGGER_EMAIL $SA_DLP_EMAIL
+
 ```
 
 
