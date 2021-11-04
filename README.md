@@ -11,6 +11,7 @@
 8. [GCP rate limiting](#gcp-rate-limiting)
 9. [Use cases](#use-cases)  
 10. [IAM Model Example](#iam-model-example)
+11. [Solution Limits](#solutions-limits)
 
 
 
@@ -481,7 +482,7 @@ Cloud Tasks Configurations:
  ## Solution Limits
  
 General limits:
-  * Supports 1 GCP region only: 
+  * Supports 1 GCP region only:  
   A table must be in the same GCP region as the taxonomy in order to use its policy tags. If tables
   span multiple regions, the solution must be extended to create replicas of the taxonomies in other regions
   and include them in the InfoType to policy tag mapping views created by Terraform.
