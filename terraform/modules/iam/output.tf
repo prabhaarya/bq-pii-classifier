@@ -20,6 +20,16 @@ output "sa_scheduler_email" {
   value = google_service_account.sa_scheduler.email
 }
 
-output "debug_taxonomy_reader" {
-  value = google_data_catalog_taxonomy_iam_member.taxonomy_reader
+output "local_parent_tags_with_members_list" {
+  value = local.parent_tags_with_members_list
 }
+
+output "local_iam_members_list" {
+  value = local.iam_members_list
+}
+
+
+
+//output "debug_policy_tag_readers" {
+//  value = google_data_catalog_policy_tag_iam_member.policy_tag_reader
+//}

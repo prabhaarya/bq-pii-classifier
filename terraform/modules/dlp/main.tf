@@ -62,28 +62,6 @@ resource "google_data_loss_prevention_inspect_template" "inspection_template" {
 
     custom_info_types {
       info_type {
-        name = "CT_DPA_VERIFICATION"
-      }
-
-      likelihood = "LIKELY"
-
-      dictionary {
-        word_list {
-          words = ["where the child was born",
-            "navy nickname",
-            "date of birth",
-            "airforce nickname",
-            "email address",
-            "previous company",
-            "mothers name",
-            "phone number",
-            "starsign"]
-        }
-      }
-    }
-
-    custom_info_types {
-      info_type {
         name = "CT_PAYMENT_METHOD"
       }
 
