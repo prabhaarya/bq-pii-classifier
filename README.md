@@ -478,3 +478,26 @@ Cloud Tasks Configurations:
   
   ![alt text](diagrams/iam.jpeg)
  
+ ## Solution Limits
+ 
+General limits:
+  * Supports 1 GCP region only: 
+  A table must be in the same GCP region as the taxonomy in order to use its policy tags. If tables
+  span multiple regions, the solution must be extended to create replicas of the taxonomies in other regions
+  and include them in the InfoType to policy tag mapping views created by Terraform.
+  
+  * Supports Cloud Function `Allow All Traffic` mode only:  
+  The solution is using serverless products like Cloud Functions, Cloud Tasks, PubSub and Cloud Scheduler.
+  In order for Cloud Functions to communicate with the rest of these products it must be deployed with 
+  `Allow All Traffic` mode ([see Ingress settings.](https://cloud.google.com/functions/docs/networking/network-settings#ingress_settings)) 
+  . This network setting doesn't mean that the functions are open, they will still be secured by requiring authentication.
+  To work with `Allow internal traffic only` and accepting traffic originating only from VPC networks in the same project or VPC Service Controls perimeter;
+  the solution must be re-designed without the use of Cloud Tasks, PubSub and Cloud Scheduler. 
+ 
+ [Data Catalog Limits:](https://cloud.google.com/data-catalog/docs/resources/quotas)
+ * 40 taxonomies per project --> 40 domains to configure in the domain mapping (1 taxonomy per domain)
+ * 100 policy tags per taxonomy --> 100 data classifications and DLP types to scan for
+ 
+ [BigQuery Limits:](https://cloud.google.com/bigquery/quotas)
+ * 1 policy tag per column --> One column could be identified as only one DLP InfoType.
+ 
