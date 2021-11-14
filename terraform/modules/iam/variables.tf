@@ -10,3 +10,4 @@ variable "sa_scheduler"{}
 variable "taxonomy_parent_tags"{}
 variable "iam_mapping"{}
 variable "dlp_service_account" {}
+variable "tagger_role" {}

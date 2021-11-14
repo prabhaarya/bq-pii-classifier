@@ -121,7 +121,7 @@ resource "google_project_iam_member" "sa_listener_tasks_enqueuer" {
 
 resource "google_project_iam_custom_role" "tagger-role" {
   project = var.project
-  role_id = "tf_tagger_role"
+  role_id = var.tagger_role
   title = "tf_tagger_role"
   description = "Used to grant permissions to sa_tagger"
   permissions = [

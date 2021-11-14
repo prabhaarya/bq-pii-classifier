@@ -80,6 +80,15 @@ variable "cf_tagger" {
   default = "sc-tagger"
 }
 
+variable "tagger_role" {
+  default = "tf_tagger_role"
+}
+
+variable "log_sink_name" {
+  default = "bigquery-logging-sink"
+}
+
+
 # DLP scanning scope
 # Optional fields. At least one should be provided among the _INCLUDE configs
 # format: project.dataset.table1, project.dataset.table2, etc

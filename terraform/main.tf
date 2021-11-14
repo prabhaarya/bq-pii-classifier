@@ -130,6 +130,7 @@ module "cloud_logging" {
 
   dataset = var.bigquery_dataset_name
   project = var.project
+  log_sink_name = var.log_sink_name
 }
 
 module "bigquery" {
@@ -170,6 +171,7 @@ module "iam" {
   taxonomy_parent_tags = local.created_parent_tags
   iam_mapping = var.iam_mapping
   dlp_service_account = var.dlp_service_account
+  tagger_role = var.tagger_role
 
 }
 
