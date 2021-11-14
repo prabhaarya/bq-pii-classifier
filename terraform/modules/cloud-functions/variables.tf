@@ -1,5 +1,6 @@
 variable "project" {}
 variable "region" {}
+variable "cf_source_bucket" {}
 variable "sa_dispatcher_email" {}
 variable "sa_inspector_email" {}
 variable "sa_listener_email" {}

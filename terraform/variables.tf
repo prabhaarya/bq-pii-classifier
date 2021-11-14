@@ -88,6 +88,10 @@ variable "log_sink_name" {
   default = "bigquery-logging-sink"
 }
 
+variable "cf_source_bucket" {}
+
+
+
 
 # DLP scanning scope
 # Optional fields. At least one should be provided among the _INCLUDE configs

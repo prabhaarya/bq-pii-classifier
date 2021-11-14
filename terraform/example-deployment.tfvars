@@ -19,6 +19,7 @@ bigquery_dataset_name = "bq_security_classifier"
 dlp_results_table_name = "dlp_results"
 tagger_queue = "tagger-queue"
 inspector_queue = "inspector-queue"
+cf_source_bucket = "<project name>-functions-source"
 
 # DLP scanning scope
 # Optional fields. At least one should be provided among the _INCLUDE configs

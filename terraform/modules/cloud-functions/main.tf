@@ -19,7 +19,7 @@ data "archive_file" "source" {
 
 # Create bucket that will host the source code
 resource "google_storage_bucket" "source_bucket" {
-  name = "${var.project}-functions-source"
+  name = var.cf_source_bucket
   location = var.region
   uniform_bucket_level_access = true
 }

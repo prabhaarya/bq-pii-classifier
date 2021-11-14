@@ -224,6 +224,7 @@ module "cloud_functions" {
   taxonomies = local.created_taxonomies
   is_dry_run = var.is_dry_run
   table_scan_limits_json_config = var.table_scan_limits_json_config
+  cf_source_bucket = var.cf_source_bucket
 }
 
 module "dlp" {
