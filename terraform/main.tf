@@ -144,6 +144,7 @@ module "cloud_logging" {
 
   dataset = module.bigquery.results_dataset
   project = var.project
+  region = var.region
   log_sink_name = "${var.log_sink_name}_${var.env}"
 }
 
