@@ -16,6 +16,8 @@ variable "project" {}
 
 variable "region" {}
 
+variable "env" {}
+
 variable "bigquery_dataset_name" {
   default = "bq_security_classifier"
 }
@@ -88,7 +90,9 @@ variable "log_sink_name" {
   default = "bigquery-logging-sink"
 }
 
-variable "cf_source_bucket" {}
+variable "cf_source_bucket" {
+  default = "functions-source"
+}
 
 
 

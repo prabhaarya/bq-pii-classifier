@@ -125,19 +125,11 @@ module "data-catalog" {
   nodes = var.classification_taxonomy
 }
 
-module "cloud_logging" {
-  source = "./modules/cloud-logging"
-
-  dataset = var.bigquery_dataset_name
-  project = var.project
-  log_sink_name = var.log_sink_name
-}
-
 module "bigquery" {
   source = "./modules/bigquery"
   project = var.project
   region = var.region
-  dataset = var.bigquery_dataset_name
+  dataset = "${var.bigquery_dataset_name}_${var.env}"
   dlp_results_table_name = var.dlp_results_table_name
   logging_sink_sa = module.cloud_logging.service_account
 
@@ -147,12 +139,20 @@ module "bigquery" {
   projects_domains_mapping = local.project_and_domains_filtered
 }
 
+module "cloud_logging" {
+  source = "./modules/cloud-logging"
+
+  dataset = module.bigquery.results_dataset
+  project = var.project
+  log_sink_name = "${var.log_sink_name}_${var.env}"
+}
+
 module "cloud_tasks" {
   source = "./modules/cloud-tasks"
   project = var.project
   region = var.region
-  inspector_queue = var.inspector_queue
-  tagger_queue = var.tagger_queue
+  inspector_queue = "${var.inspector_queue}-${var.env}"
+  tagger_queue = "${var.tagger_queue}-${var.env}"
 
   depends_on = [google_project_service.enable_appengine]
 }
@@ -161,17 +161,17 @@ module "iam" {
   source = "./modules/iam"
   project = var.project
   region = var.region
-  sa_dispatcher = var.sa_dispatcher
-  sa_inspector = var.sa_inspector
-  sa_listener = var.sa_listener
-  sa_tagger = var.sa_tagger
-  sa_inspector_tasks = var.sa_inspector_tasks
-  sa_tagger_tasks = var.sa_tagger_tasks
-  sa_scheduler = var.sa_scheduler
+  sa_dispatcher = "${var.sa_dispatcher}-${var.env}"
+  sa_inspector = "${var.sa_inspector}-${var.env}"
+  sa_listener = "${var.sa_listener}-${var.env}"
+  sa_tagger = "${var.sa_tagger}-${var.env}"
+  sa_inspector_tasks = "${var.sa_inspector_tasks}-${var.env}"
+  sa_tagger_tasks = "${var.sa_tagger_tasks}-${var.env}"
+  sa_scheduler = "${var.sa_scheduler}-${var.env}"
   taxonomy_parent_tags = local.created_parent_tags
   iam_mapping = var.iam_mapping
   dlp_service_account = var.dlp_service_account
-  tagger_role = var.tagger_role
+  tagger_role = "${var.tagger_role}_${var.env}"
 
 }
 
@@ -179,7 +179,7 @@ module "cloud_scheduler" {
   source = "./modules/cloud-scheduler"
   project = var.project
   region = var.region
-  scheduler_name = var.scheduler_name
+  scheduler_name = "${var.scheduler_name}_${var.env}"
   target_uri = module.cloud_functions.dispatcher_url
   service_account_email = module.iam.sa_scheduler_email
 
@@ -196,7 +196,7 @@ module "cloud_scheduler" {
 module "pubsub" {
   source = "./modules/pubsub"
   project = var.project
-  dlp_notifications_topic = var.dlp_notifications_topic
+  dlp_notifications_topic = "${var.dlp_notifications_topic}_${var.env}"
 }
 
 module "cloud_functions" {
@@ -211,20 +211,20 @@ module "cloud_functions" {
   sa_tagger_tasks_email = module.iam.sa_tagger_tasks_email
   sa_scheduler_email = module.iam.sa_scheduler_email
   dlp_notifications_topic_fqn = module.pubsub.dlp_notifications_topic_fqn
-  cf_dispatcher = var.cf_dispatcher
-  cf_inspector = var.cf_inspector
-  cf_listener = var.cf_listener
-  cf_tagger = var.cf_tagger
-  bq_results_dataset = var.bigquery_dataset_name
-  bq_results_table = var.dlp_results_table_name
-  inspector_queue_name = var.inspector_queue
-  tagger_queue_name = var.tagger_queue
+  cf_dispatcher = "${var.cf_dispatcher}_${var.env}"
+  cf_inspector = "${var.cf_inspector}_${var.env}"
+  cf_listener = "${var.cf_listener}_${var.env}"
+  cf_tagger = "${var.cf_tagger}_${var.env}"
+  bq_results_dataset = module.bigquery.results_dataset
+  bq_results_table = module.bigquery.results_table
+  inspector_queue_name = module.cloud_tasks.inspector_queue_name
+  tagger_queue_name = module.cloud_tasks.tagger_queue_name
   dlp_inspection_template_id = module.dlp.template_id
   bq_view_dlp_fields_findings = module.bigquery.bq_view_dlp_fields_findings
   taxonomies = local.created_taxonomies
   is_dry_run = var.is_dry_run
   table_scan_limits_json_config = var.table_scan_limits_json_config
-  cf_source_bucket = var.cf_source_bucket
+  cf_source_bucket = "${var.project}-${var.cf_source_bucket}-${var.env}"
 }
 
 module "dlp" {

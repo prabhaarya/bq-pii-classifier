@@ -14,6 +14,7 @@
 
 project = "<enter host project id>"
 region = "<GCP region to deploy to>"
+env = "<dev, tst, prod, poc, etc>"
 
 bigquery_dataset_name = "bq_security_classifier"
 dlp_results_table_name = "dlp_results"

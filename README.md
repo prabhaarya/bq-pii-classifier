@@ -107,7 +107,10 @@ Both ways, you must define the below variables:
 ```
 project = "<GCP project ID to deploy solution to>"
 region = "<GCP region>"
+env = "<dev, tst, prod, poc, etc>"
 ```
+
+PS: the `env` value will be added as a suffix to most resources  
 
 PS: Cloud tasks queues can't be re-created with the same name
 after deleting them. If you deleted the queues (manually or via Terraform), you must provide
@@ -278,7 +281,7 @@ table_scan_limits_json_config = "{\"limitType\": \"NUMBER_OF_ROWS\", \"limits\":
 ```
 # project to deploy to
 export PROJECT_ID=<> 
-export REGION=europe-west2
+export REGION=<>
 export BUCKET_NAME=${PROJECT_ID}-bq-security-classifier
 export BUCKET=gs://${BUCKET_NAME}
 # gcloud & terraform config name
@@ -289,9 +292,8 @@ export ACCOUNT=<>
 gcloud config configurations create $CONFIG
 gcloud config set project $PROJECT_ID
 gcloud config set compute/region $REGION
-gcloud config set account $ACCOUNT
-
 gcloud auth login
+gcloud config set account $ACCOUNT
 
 gcloud auth application-default login
 ```
@@ -365,6 +367,10 @@ terraform apply -var-file=$VARS -auto-approve
 
 ```
 
+PS: In case you're deploying to a new project where DLP has
+never ran before, the DLP service account won't be created and Terraform will fail.  
+In that case, run a sample DLP job to force DLP to create the service account.
+
 ## Configure Data Projects
 
 The application is deployed under a host project as set in the `PROJECT_ID` variable.
@@ -375,9 +381,10 @@ PS: update the SA emails if the default names have been changed
 
 ```
 export DATA_PROJECT=<>
-export SA_DISPATCHER_EMAIL=sa-sc-dispatcher@${PROJECT_ID}.iam.gserviceaccount.com
-export SA_INSPECTOR_EMAIL=sa-sc-inspector@${PROJECT_ID}.iam.gserviceaccount.com
-export SA_TAGGER_EMAIL=sa-sc-tagger@${PROJECT_ID}.iam.gserviceaccount.com
+export ENV=<>
+export SA_DISPATCHER_EMAIL=sa-sc-dispatcher-${ENV}@${PROJECT_ID}.iam.gserviceaccount.com
+export SA_INSPECTOR_EMAIL=sa-sc-inspector-${ENV}@${PROJECT_ID}.iam.gserviceaccount.com
+export SA_TAGGER_EMAIL=sa-sc-tagger-${ENV}@${PROJECT_ID}.iam.gserviceaccount.com
 export SA_DLP_EMAIL=service-$PROJECT_NUMBER0@dlp-api.iam.gserviceaccount.com
 
 ./scripts/prepare_data_projects.sh "${DATA_PROJECT}" $SA_DISPATCHER_EMAIL $SA_INSPECTOR_EMAIL $SA_TAGGER_EMAIL $SA_DLP_EMAIL
