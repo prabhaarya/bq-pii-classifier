@@ -109,17 +109,28 @@ variable "tables_exclude_list" {}
 # for each domain in scope, these policy tags will be created in a domain-specific taxonomy
 # and mapped in BQ configuration with the generated policy_tag_id. Each policy tag will be created
 # under a parent node based on the 'classification' field
+# info_type_category: "standard" or "custom". Standard types will be added to the DLP inspection template automatically.
+# Custom types must be defined manuanly in th template
 # INFO_TYPEs configured in the DLP inspection job MUST be mapped here. Otherwise, mapping to policy tag ids will fail
-variable "classification_taxonomy" {}
+variable "classification_taxonomy" {
+  type = list(object({
+    info_type = string
+    info_type_category = string # (standard | custom)
+    policy_tag = string
+    classification = string
+  }))
+}
 //Example:
 //classification_taxonomy = [
 //  {
 //    info_type = "EMAIL_ADDRESS",
+//    info_type_category = "standard",
 //    policy_tag = "email",
 //    classification = "P1"
 //  },
 //  {
 //    info_type = "PHONE_NUMBER",
+//    info_type_category = "standard",
 //    policy_tag = "phone"
 //    classification = "P2"
 //  }

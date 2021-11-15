@@ -135,14 +135,17 @@ tables_exclude_list = ""
 ```
 ### Configure Data Classification Taxonomy
 
-A mapping between DLP InfoTypes, policy tags and classifications.
-Classifications are parent nodes in the taxonomy to group children nodes.
+A mapping between DLP InfoTypes, policy tags and classifications.  
+Classifications: are parent nodes in the taxonomy to group children nodes.  
+info_type_category: is either "standard" or "custom".  Standard types will
+be automatically added the DLP inspection template while Custom types 
+have to be manually configured in Terraform.
 
 This will enable the solution:
  * Build hierarchical policy tag taxonomies
  * To identify which policy tag to apply to a column based on the PII/InfoType discovered
 
-PS: INFO_TYPEs configured in the [DLP inspection job](terraform/modules/dlp/main.tf) 
+PS: Custom INFO_TYPEs configured in the [DLP inspection job](terraform/modules/dlp/main.tf) 
 MUST be mapped here. Otherwise, mapping to policy tag ids will fail
 
 ```
@@ -150,11 +153,13 @@ MUST be mapped here. Otherwise, mapping to policy tag ids will fail
 classification_taxonomy = [
   {
     info_type = "EMAIL_ADDRESS",
+    info_type_category = "standard",
     policy_tag = "email",
     classification = "High"
   },
   {
     info_type = "PHONE_NUMBER",
+    info_type_category = "standard",
     policy_tag = "phone"
     classification = "Low"
   },

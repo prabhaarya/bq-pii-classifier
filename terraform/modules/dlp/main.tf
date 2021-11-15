@@ -10,53 +10,16 @@ resource "google_data_loss_prevention_inspect_template" "inspection_template" {
 
   inspect_config {
 
-    ### STANDARD INFOTYPES
-
-    info_types {
-      name = "EMAIL_ADDRESS"
-    }
-
-    info_types {
-      name = "PHONE_NUMBER"
-    }
-
-    info_types {
-      name = "STREET_ADDRESS"
-    }
-
-    info_types {
-      name = "PERSON_NAME"
-    }
-
-    info_types {
-      name = "IMEI_HARDWARE_ID"
-    }
-
-    info_types {
-      name = "IP_ADDRESS"
-    }
-
-    info_types {
-      name = "MAC_ADDRESS"
-    }
-
-    info_types {
-      name = "URL"
-    }
-
-    info_types {
-      name = "GENDER"
-    }
-
-    info_types {
-      name = "UK_NATIONAL_INSURANCE_NUMBER"
-    }
-
-    info_types {
-      name = "UK_DRIVERS_LICENSE_NUMBER"
-    }
-
     min_likelihood = "LIKELY"
+
+    dynamic info_types{
+      // filter the "standard" info types only
+      for_each = [for x in var.classification_taxonomy: x if lookup(x, "info_type_category") == "standard"]
+
+      content {
+        name =  lookup(info_types.value, "info_type")
+      }
+    }
 
     ### CUSTOM INFOTYPES
 

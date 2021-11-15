@@ -38,61 +38,73 @@ tables_exclude_list = ""
 classification_taxonomy = [
   {
     info_type = "EMAIL_ADDRESS",
+    info_type_category = "standard",
     policy_tag = "email",
     classification = "P1"
   },
   {
     info_type = "PHONE_NUMBER",
+    info_type_category = "standard",
     policy_tag = "phone",
     classification = "P1"
   },
   {
     info_type = "STREET_ADDRESS",
+    info_type_category = "standard",
     policy_tag = "street_address",
     classification = "P1"
   },
   {
     info_type = "PERSON_NAME",
+    info_type_category = "standard",
     policy_tag = "person_name",
     classification = "P1"
   },
   {
     info_type = "IP_ADDRESS",
+    info_type_category = "standard",
     policy_tag = "ip_address",
     classification = "P2"
   },
   {
     info_type = "IMEI_HARDWARE_ID",
+    info_type_category = "standard",
     policy_tag = "imei_hardware",
     classification = "P2"
   },
   {
     info_type = "MAC_ADDRESS",
+    info_type_category = "standard",
     policy_tag = "mac_address",
     classification = "P2"
   },
   {
     info_type = "URL",
+    info_type_category = "standard",
     policy_tag = "url",
     classification = "P2"
   },
   {
     info_type = "GENDER",
+    info_type_category = "standard",
     policy_tag = "gender",
     classification = "P2"
   },
   {
     info_type = "UK_NATIONAL_INSURANCE_NUMBER",
+    info_type_category = "standard",
     policy_tag = "uk_national_insurance_number",
     classification = "P2"
   },
   {
     info_type = "UK_DRIVERS_LICENSE_NUMBER",
+    info_type_category = "standard",
     policy_tag = "uk_drivers_license_number",
     classification = "P2"
   },
   {
     info_type = "CT_PAYMENT_METHOD",
+    info_type_category = "custom",
     policy_tag = "payment_method",
     classification = "P2"
   }

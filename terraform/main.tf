@@ -231,6 +231,7 @@ module "dlp" {
   source = "./modules/dlp"
   project = var.project
   region = var.region
+  classification_taxonomy = var.classification_taxonomy
 }
 
 
